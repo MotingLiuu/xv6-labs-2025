@@ -12,6 +12,8 @@
  * the kernel's page table.
  */
 pagetable_t kernel_pagetable;
+// MT: pagetable_t is just a pointer pointing to int64
+// MT: it is a pointer pointing to level-2 page table
 
 extern char etext[];  // kernel.ld sets this to end of kernel code.
 
@@ -23,8 +25,8 @@ kvmmake(void)
 {
   pagetable_t kpgtbl;
 
-  kpgtbl = (pagetable_t) kalloc();
-  memset(kpgtbl, 0, PGSIZE);
+  kpgtbl = (pagetable_t) kalloc(); // return the address of a free page
+  memset(kpgtbl, 0, PGSIZE); // set the page to zero
 
   // uart registers
   kvmmap(kpgtbl, UART0, UART0, PGSIZE, PTE_R | PTE_W);
@@ -102,9 +104,13 @@ walk(pagetable_t pagetable, uint64 va, int alloc)
 
   for(int level = 2; level > 0; level--) {
     pte_t *pte = &pagetable[PX(level, va)];
+    // MT: pte is a pointer pointing to the PTE in corresponding page table
     if(*pte & PTE_V) {
       pagetable = (pagetable_t)PTE2PA(*pte);
+      // MT: get the level-1 page table
     } else {
+      // MT: if there is no valid PTE in level-2 page table
+      // MT: allocate a new level-1 page table and put it in level-2 page table
       if(!alloc || (pagetable = (pde_t*)kalloc()) == 0)
         return 0;
       memset(pagetable, 0, PGSIZE);
@@ -112,6 +118,7 @@ walk(pagetable_t pagetable, uint64 va, int alloc)
     }
   }
   return &pagetable[PX(0, va)];
+  // MT: get the final PTE in level-0 page table
 }
 
 // Look up a virtual address, return the physical address,
@@ -165,6 +172,7 @@ mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
     if(*pte & PTE_V)
       panic("mappages: remap");
     *pte = PA2PTE(pa) | perm | PTE_V;
+    // MT: 
     if(a == last)
       break;
     a += PGSIZE;
@@ -347,10 +355,12 @@ copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
 
   while(len > 0){
     va0 = PGROUNDDOWN(dstva);
+    // MT: get the va of the start of the page
     if(va0 >= MAXVA)
       return -1;
   
     pa0 = walkaddr(pagetable, va0);
+    // MT: get the physical address of the start of the page
     if(pa0 == 0) {
       if((pa0 = vmfault(pagetable, va0, 0)) == 0) {
         return -1;
@@ -361,15 +371,21 @@ copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
     // forbid copyout over read-only user text pages.
     if((*pte & PTE_W) == 0)
       return -1;
+    // MT: check if the page is writable
       
     n = PGSIZE - (dstva - va0);
+    // MT: the remaining bytes of the page
     if(n > len)
       n = len;
     memmove((void *)(pa0 + (dstva - va0)), src, n);
+    // MT: copy n bytes from src to dst
 
     len -= n;
+    // MT: compute the remaining bytes to copy
     src += n;
+    // MT: move the src pointer to bytes waiting to be copied
     dstva = va0 + PGSIZE;
+    // MT: move the dst pointer to the next page
   }
   return 0;
 }
@@ -418,10 +434,12 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
     if(pa0 == 0)
       return -1;
     n = PGSIZE - (srcva - va0);
+    // MT: n is the remaining bytes of the page
     if(n > max)
       n = max;
 
     char *p = (char *) (pa0 + (srcva - va0));
+    // p is the pa of the first byte corresponding to the srcva
     while(n > 0){
       if(*p == '\0'){
         *dst = '\0';

@@ -8,9 +8,9 @@
 
 struct cpu cpus[NCPU];
 
-struct proc proc[NPROC];
+struct proc proc[NPROC]; // proc is a global array.
 
-struct proc *initproc;
+struct proc *initproc;  // always pointing to the first user program
 
 int nextpid = 1;
 struct spinlock pid_lock;
@@ -26,7 +26,7 @@ extern char trampoline[]; // trampoline.S
 // must be acquired before any p->lock.
 struct spinlock wait_lock;
 
-// Allocate a page for each process's kernel stack.
+// MT: Allocate a page for each process's kernel stack.
 // Map it high in memory, followed by an invalid
 // guard page.
 void
@@ -36,10 +36,13 @@ proc_mapstacks(pagetable_t kpgtbl)
   
   for(p = proc; p < &proc[NPROC]; p++) {
     char *pa = kalloc();
+    // pa is the physical address of the page
     if(pa == 0)
       panic("kalloc");
     uint64 va = KSTACK((int) (p - proc));
     kvmmap(kpgtbl, va, (uint64)pa, PGSIZE, PTE_R | PTE_W);
+    // map the page below the trampoline in virtual space to pa
+    // in physical memory. PTE_R | PTE_W means read and write.
   }
 }
 
@@ -53,8 +56,12 @@ procinit(void)
   initlock(&wait_lock, "wait_lock");
   for(p = proc; p < &proc[NPROC]; p++) {
       initlock(&p->lock, "proc");
+      // MT: this is a lock belonging to the struct proc
+      // MT: a process can not running in two threads at the same time
+      // MT: protect states of struct proc and invariants releated to scheduling
       p->state = UNUSED;
       p->kstack = KSTACK((int) (p - proc));
+      // MT: record the corresponding kernel stack into the struct proc
   }
 }
 
@@ -83,9 +90,11 @@ struct proc*
 myproc(void)
 {
   push_off();
+  //MT: disable interrupts
   struct cpu *c = mycpu();
   struct proc *p = c->proc;
   pop_off();
+  //MT: enable interrupts
   return p;
 }
 
@@ -106,13 +115,13 @@ allocpid()
 // If found, initialize state required to run in the kernel,
 // and return with p->lock held.
 // If there are no free procs, or a memory allocation fails, return 0.
-static struct proc*
+static struct proc* // MT: this func would return a proc pointer
 allocproc(void)
 {
   struct proc *p;
 
   for(p = proc; p < &proc[NPROC]; p++) {
-    acquire(&p->lock);
+    acquire(&p->lock); //MT: acquire the lock of p
     if(p->state == UNUSED) {
       goto found;
     } else {
@@ -122,7 +131,7 @@ allocproc(void)
   return 0;
 
 found:
-  p->pid = allocpid();
+  p->pid = allocpid(); 
   p->state = USED;
 
   // Allocate a trapframe page.
@@ -130,10 +139,10 @@ found:
     freeproc(p);
     release(&p->lock);
     return 0;
-  }
+  } 
 
   // An empty user page table.
-  p->pagetable = proc_pagetable(p);
+  p->pagetable = proc_pagetable(p); // MT: what does this mean?
   if(p->pagetable == 0){
     freeproc(p);
     release(&p->lock);
@@ -147,7 +156,7 @@ found:
   p->context.sp = p->kstack + PGSIZE;
 
   return p;
-}
+} //MT: what does this function mean?
 
 // free a proc structure and the data hanging from it,
 // including user pages.
@@ -502,7 +511,9 @@ yield(void)
 void
 forkret(void)
 {
-  extern char userret[];
+  extern char userret[]; // MT:what does this mean? what is this grammar?
+                         // recover the user registers and return to user mode?
+                         // explain this in detail.
   static int first = 1;
   struct proc *p = myproc();
 

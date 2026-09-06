@@ -72,8 +72,9 @@ sys_read(void)
   int n;
   uint64 p;
 
-  argaddr(1, &p);
-  argint(2, &n);
+  argaddr(1, &p); // save the address of the first argument into p
+  argint(2, &n); // save the second argument into n, assume that 2nd arg is an int
+                 // The difference between argaddr and argint is that treating arg as an address or an int.
   if(argfd(0, 0, &f) < 0)
     return -1;
   return fileread(f, p, n);
@@ -435,19 +436,25 @@ uint64
 sys_exec(void)
 {
   char path[MAXPATH], *argv[MAXARG];
+  // MT: path is an array in kernel stack
+  // MT: argv is an array in kernel stack
   int i;
   uint64 uargv, uarg;
 
   argaddr(1, &uargv);
+  // MT: get the first argument of system call and store it in uargv
+  // MT: get user virtual address of argv
   if(argstr(0, path, MAXPATH) < 0) {
     return -1;
   }
+  // MT: this would store the path into path.
   memset(argv, 0, sizeof(argv));
   for(i=0;; i++){
     if(i >= NELEM(argv)){
       goto bad;
     }
     if(fetchaddr(uargv+sizeof(uint64)*i, (uint64*)&uarg) < 0){
+      // MT: fetch the user virtual address of argv[i]
       goto bad;
     }
     if(uarg == 0){
