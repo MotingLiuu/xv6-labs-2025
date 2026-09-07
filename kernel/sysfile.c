@@ -312,24 +312,31 @@ sys_open(void)
   int n;
 
   argint(1, &omode);
+  //MT: read the second argument of open() save it into omode
   if((n = argstr(0, path, MAXPATH)) < 0)
+  //MT: read the first argument, a string terminated with '\0', into path
     return -1;
 
   begin_op();
 
   if(omode & O_CREATE){
+    //MT: omode & O_CREATE is not 0, create a file
     ip = create(path, T_FILE, 0, 0);
+    //MT: return the inode's address to ip
     if(ip == 0){
       end_op();
       return -1;
     }
   } else {
     if((ip = namei(path)) == 0){
+      //MT: parse the path into a inode, return the address of inode
       end_op();
       return -1;
     }
     ilock(ip);
+    //MT: acquire the sleep lock of this inode
     if(ip->type == T_DIR && omode != O_RDONLY){
+      //MT: can not write to a directory
       iunlockput(ip);
       end_op();
       return -1;
@@ -337,12 +344,16 @@ sys_open(void)
   }
 
   if(ip->type == T_DEVICE && (ip->major < 0 || ip->major >= NDEV)){
+    //MT: If the inode is a device, just return -1
     iunlockput(ip);
     end_op();
     return -1;
   }
 
   if((f = filealloc()) == 0 || (fd = fdalloc(f)) < 0){
+    //MT: find a free place in kernel global file table ftable.file[]
+    //MT: f is the address of &ftable.file[]
+    //MT: fdalloc(f) stores the address of file struct into proc's file table
     if(f)
       fileclose(f);
     iunlockput(ip);
