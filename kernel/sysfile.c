@@ -460,19 +460,24 @@ sys_exec(void)
   }
   // MT: this would store the path into path.
   memset(argv, 0, sizeof(argv));
+  // MT: set all elements of argv into 0
   for(i=0;; i++){
     if(i >= NELEM(argv)){
       goto bad;
     }
     if(fetchaddr(uargv+sizeof(uint64)*i, (uint64*)&uarg) < 0){
       // MT: fetch the user virtual address of argv[i]
+      // MT: store the address of argv[i] into uarg
       goto bad;
     }
     if(uarg == 0){
+      // MT: the last arg's address is 0, so break the loop
       argv[i] = 0;
       break;
     }
     argv[i] = kalloc();
+    //MT: Question: why use kalloc()? kalloc() would allocate a memo with 4096 bytes
+    //MT: is this space too big?
     if(argv[i] == 0)
       goto bad;
     if(fetchstr(uarg, argv[i], PGSIZE) < 0)
