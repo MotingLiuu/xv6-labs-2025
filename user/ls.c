@@ -58,8 +58,7 @@ ls(char *path)
 // if the file is T_DIR
   case T_DIR:
     if(strlen(path) + 1 + DIRSIZ + 1 > sizeof buf){
-      // the 1st 1 represent the '/' after the path?
-      // the 2nd 1 represent the '\0' at the end of the path?
+      //MT: Question: why there is +1 and +1
       printf("ls: path too long\n");
       break;
     }
