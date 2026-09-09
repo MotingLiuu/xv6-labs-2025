@@ -3,9 +3,9 @@
 #include "user/user.h"
 #include "kernel/fs.h"
 #include "kernel/fcntl.h"
+#include "kernel/param.h"
 
 int find(char *path, char *name, char **ap, char **ape) {
-
   /*printf("DEBUG: find: looking for %s in %s\n", name, path); */
 
   int fd;
@@ -63,16 +63,22 @@ int find(char *path, char *name, char **ap, char **ape) {
               if (ap == 0) {
                 printf("%s\n", buf);
               } else {
-                int pid = 0;
-                pid = fork();
-                if (pid == -1) {
+                int pid = fork();
+                if (pid > 0) {
+                  wait(0);
+                } else if (pid == 0) {
+                  char *eargv[MAXARG];
+                  char **tmp = ap;
+                  while (*tmp) {
+                    eargv[tmp-ap] = *tmp;
+                    tmp++;
+                  }
+                  eargv[tmp-ap] = buf;
+                  exec(*eargv, eargv);
+                  exit(1);
+                } else {
                   fprintf(2, "find: cannot fork\n");
                   exit(1);
-                } else if (pid == 0) {
-                  *ape++ = buf;
-                  *ape = 0;
-                  exec(ap[0], ap);
-                  exit(0);
                 }
               }
             } 
@@ -88,6 +94,9 @@ int find(char *path, char *name, char **ap, char **ape) {
 }
 
 int main(int argc, char *argv[]) {
+  //MT: main() would executed after the preparation of find.c be done by kexec()
+  //MT: kexec() would just put argc params into argv[0]...argv[argc] 
+  //MT: after that, set argv[argc]
   char **p = 0;
   char **pe = 0;
   if (argc <= 2) {
