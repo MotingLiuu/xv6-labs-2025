@@ -411,6 +411,7 @@ gettoken(char **ps, char *es, char **q, char **eq)
   default:
     ret = 'a';
     while(s < es && !strchr(whitespace, *s) && !strchr(symbols, *s))
+      // MT: at the end of the loop, s points to the next char of the token
       s++;
     break;
   }
@@ -563,11 +564,15 @@ parseexec(char **ps, char *es)
   ret = parseredirs(ret, ps, es); // if the first char of next token is not '(', call parseredirs
   while(!peek(ps, es, "|)&;")){
     if((tok=gettoken(ps, es, &q, &eq)) == 0)
+      // MT: es points to the next char of the token in the cmd str.
+      // MT: .... aabaa(the polace es pointing to)...
       break;
     if(tok != 'a')
       panic("syntax");
     cmd->argv[argc] = q;
     cmd->eargv[argc] = eq;
+    // MT: cmd->argv[argc] is the pointer pointing to the first char of the token
+    // MT: cmd->eargv[argc] is the pointer pointing to next char of the token
     argc++;
     if(argc >= MAXARGS)
       panic("too many args");
