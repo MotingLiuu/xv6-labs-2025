@@ -485,6 +485,8 @@ sys_exec(void)
   }
 
   int ret = kexec(path, argv);
+  //MT: at this point, we can only access the argv[0]...argv[argc-1]
+  //MT: for only argv[0]...argv[argc-1] has memo allocated by kalloc()
 
   for(i = 0; i < NELEM(argv) && argv[i] != 0; i++)
     kfree(argv[i]);

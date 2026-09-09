@@ -94,6 +94,7 @@ usertrap(void)
 
   // the user page table to switch to, for trampoline.S
   uint64 satp = MAKE_SATP(p->pagetable);
+  // MT: set tabel to p->pagetable which create by kexec()
 
   // return to trampoline.S; satp value in a0.
   return satp;

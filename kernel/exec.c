@@ -60,6 +60,7 @@ kexec(char *path, char **argv)
     if(readi(ip, 0, (uint64)&ph, off, sizeof(ph)) != sizeof(ph))
       goto bad;
     if(ph.type != ELF_PROG_LOAD)
+      //MT: This means that this section should not be loaded into memory
       continue;
     if(ph.memsz < ph.filesz)
       goto bad;
@@ -69,6 +70,7 @@ kexec(char *path, char **argv)
       goto bad;
     uint64 sz1;
     if((sz1 = uvmalloc(pagetable, sz, ph.vaddr + ph.memsz, flags2perm(ph.flags))) == 0)
+      //MT: extent memo from sz to ph.vaddr + ph.memsz
       goto bad;
     sz = sz1;
     if(loadseg(pagetable, ph.vaddr, ip, ph.off, ph.filesz) < 0)
@@ -87,6 +89,7 @@ kexec(char *path, char **argv)
   sz = PGROUNDUP(sz);
   uint64 sz1;
   if((sz1 = uvmalloc(pagetable, sz, sz + (USERSTACK+1)*PGSIZE, PTE_W)) == 0)
+    //MT: allocate a new block for stack, with a guard page
     goto bad;
   sz = sz1;
   uvmclear(pagetable, sz-(USERSTACK+1)*PGSIZE);
@@ -132,10 +135,17 @@ kexec(char *path, char **argv)
   p->pagetable = pagetable;
   p->sz = sz;
   p->trapframe->epc = elf.entry;  // initial program counter = main
+  //MT: elf.entry is an entry in ELF header, record where should the process start from.
+  //MT: sepc will be used to set PC
+  //MT: after executing sret PC=sepc
   p->trapframe->sp = sp; // initial stack pointer
   proc_freepagetable(oldpagetable, oldsz);
+  // free the old va
 
   return argc; // this ends up in a0, the first argument to main(argc, argv)
+               // MT: this would be compiled to
+               // MT: mv a0, register?(where argc saved in)
+               // MT: ret
 
  bad:
   if(pagetable)
