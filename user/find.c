@@ -60,7 +60,7 @@ int find(char *path, char *name, char **ap, char **ape) {
             }
             break;
           case T_FILE:
-            printf("DEBUG: current name is %s, current file is %s\n", name, p);
+            /*printf("DEBUG: current name is %s, current file is %s\n", name, p);*/
             if (matchstr(name, p) == 1) {
               if (ap == 0) {
                 printf("%s\n", buf);
