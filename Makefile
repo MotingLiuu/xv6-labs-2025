@@ -300,6 +300,7 @@ ifeq ($(LAB),util)
 	UEXTRA += user/findtest.sh
 	UEXTRA += user/sixfive.txt
 	UEXTRA += user/tgrep.txt
+	UEXTRA += user/tgrep.sh
 	UPROGS += $U/_memdump
 endif
 
