@@ -184,6 +184,12 @@ $U/_find: $U/find.o $(REGEXLIB) $(ULIB) $U/user.ld
 	$(OBJDUMP) -S $@ > $U/find.asm
 	$(OBJDUMP) -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $U/find.sym
 
+$U/_grep: $U/grep.o $(REGEXLIB) $(ULIB) $U/user.ld
+	$(LD) $(LDFLAGS) -T $U/user.ld -o $@ $U/grep.o $(REGEXLIB) $(ULIB)
+	$(OBJDUMP) -S $@ > $U/grep.asm
+	$(OBJDUMP) -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $U/grep.sym
+
+
 # Prevent deletion of intermediate files, e.g. cat.o, after first build, so
 # that disk image changes after first build are persistent until clean.  More
 # details:
@@ -293,6 +299,7 @@ UEXTRA=
 ifeq ($(LAB),util)
 	UEXTRA += user/findtest.sh
 	UEXTRA += user/sixfive.txt
+	UEXTRA += user/tgrep.txt
 	UPROGS += $U/_memdump
 endif
 
