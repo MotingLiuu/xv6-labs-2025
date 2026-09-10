@@ -4,14 +4,15 @@
 #include "kernel/stat.h"
 #include "kernel/fcntl.h"
 #include "user/user.h"
+#include "user/regex.h"
 
 char buf[1024];
 int match(char*, char*);
 
 void
-grep(char *pattern, int fd)
+grep(char *pattern, int fd, int reflag)
 {
-  int n, m;
+  int n, m, matched = 0;
   char *p, *q;
 
   m = 0;
@@ -21,7 +22,12 @@ grep(char *pattern, int fd)
     p = buf;
     while((q = strchr(p, '\n')) != 0){
       *q = 0;
-      if(match(pattern, p)){
+      if (reflag) {
+        matched = matchstr(pattern, p);
+      } else {
+        matched = !strcmp(pattern, p);
+      }
+      if(matched){
         *q = '\n';
         write(1, p, q+1 - p);
       }
@@ -37,9 +43,9 @@ grep(char *pattern, int fd)
 int
 main(int argc, char *argv[])
 {
-  int fd, i;
+  int fd, i, reflag  = 0;
   char *pattern;
-
+/*
   if(argc <= 1){
     fprintf(2, "usage: grep pattern [file ...]\n");
     exit(1);
@@ -47,19 +53,41 @@ main(int argc, char *argv[])
   pattern = argv[1];
 
   if(argc <= 2){
-    grep(pattern, 0);
+    grep(pattern, 0, reflag);
     exit(0);
   }
+*/
+  if (argv[1] == 0)
+    goto error;
+  if (strcmp(argv[1], "-re") == 0) {
+    reflag = 1;
+    if (argv[2] == 0)
+      goto error;
+    pattern = argv[2];
+    i = 3;
+    if (argv[3] == 0)
+      grep(pattern, 0, reflag);
+  } else {
+    pattern = argv[1];
+    i = 2;
+    if (argv[2] == 0)
+      grep(pattern, 0, reflag);
+  }
 
-  for(i = 2; i < argc; i++){
+  for(; i < argc; i++){
     if((fd = open(argv[i], O_RDONLY)) < 0){
       printf("grep: cannot open %s\n", argv[i]);
       exit(1);
     }
-    grep(pattern, fd);
+    grep(pattern, fd, reflag);
     close(fd);
   }
+
   exit(0);
+
+error:
+  printf("usage: grep [-re] <name/pattern(when -re)> [<file1> <file2> ...]\n");
+  exit(1);
 }
 
 // Regexp matcher from Kernighan & Pike,
