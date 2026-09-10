@@ -1,9 +1,10 @@
 #include "kernel/types.h"
 #include "kernel/stat.h"
-#include "user/user.h"
 #include "kernel/fs.h"
 #include "kernel/fcntl.h"
 #include "kernel/param.h"
+#include "user/user.h"
+#include "user/regex.h"
 
 int find(char *path, char *name, char **ap, char **ape) {
   /*printf("DEBUG: find: looking for %s in %s\n", name, path); */
@@ -59,7 +60,8 @@ int find(char *path, char *name, char **ap, char **ape) {
             }
             break;
           case T_FILE:
-            if (strcmp(p, name) == 0) {
+            printf("DEBUG: current name is %s, current file is %s\n", name, p);
+            if (matchstr(name, p) == 1) {
               if (ap == 0) {
                 printf("%s\n", buf);
               } else {
@@ -100,7 +102,7 @@ int main(int argc, char *argv[]) {
   char **p = 0;
   char **pe = 0;
   if (argc <= 2) {
-    fprintf(2, "usage: find dir name\n");
+    fprintf(2, "usage: [find dir name] or [find dir regex]\n");
     fprintf(2, "options: find dir name -exec cmd, this would execute cmd for each file found\n");
     exit(1);
   } else if (argc == 3) {
