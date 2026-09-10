@@ -6,10 +6,11 @@
 #include "user/user.h"
 #include "user/regex.h"
 
-int find(char *path, char *name, char **ap, char **ape) {
+int find(char *path, char *name, char **ap, int reflag) {
   /*printf("DEBUG: find: looking for %s in %s\n", name, path); */
 
   int fd;
+  int matched = 0;
   char buf[512], *p;
   struct dirent de;
   struct stat st;
@@ -48,20 +49,24 @@ int find(char *path, char *name, char **ap, char **ape) {
           return -1;
         }
 
-        /*printf("DEBUG: finding %s in %s, current file is %s file's type is %d\n", name, path, p, st.type);*/
+        // printf("DEBUG: finding %s in %s, current file is %s file's type is %d\n", name, path, p, st.type);
 
         switch(st.type) {
           case T_DIR:
             if (strcmp(p, ".") == 0 || strcmp(p, "..") == 0) {
               ;
             } else {
-              if (find(buf, name, ap, ape) < 0)
+              if (find(buf, name, ap, reflag) < 0)
                 return -1;
             }
             break;
           case T_FILE:
             /*printf("DEBUG: current name is %s, current file is %s\n", name, p);*/
-            if (matchstr(name, p) == 1) {
+            if ((reflag == 0 && strcmp(name, p) == 0) || (reflag == 1 && matchstr(name, p) == 1)) {
+                matched = 1;
+            }
+            // printf("DEBUG: matched is %d\n", matched);
+            if (matched) {
               if (ap == 0) {
                 printf("%s\n", buf);
               } else {
@@ -84,6 +89,7 @@ int find(char *path, char *name, char **ap, char **ape) {
                 }
               }
             } 
+            matched = 0;
             break;
           case T_DEVICE:
             ;
@@ -99,10 +105,9 @@ int main(int argc, char *argv[]) {
   //MT: main() would executed after the preparation of find.c be done by kexec()
   //MT: kexec() would just put argc params into argv[0]...argv[argc] 
   //MT: after that, set argv[argc]
-  char **p = 0;
-  char **pe = 0;
+  /*
   if (argc <= 2) {
-    fprintf(2, "usage: [find dir name] or [find dir regex]\n");
+    fprintf(2, "usage: [find dir name] or [find dir -re regex]\n");
     fprintf(2, "options: find dir name -exec cmd, this would execute cmd for each file found\n");
     exit(1);
   } else if (argc == 3) {
@@ -117,5 +122,42 @@ int main(int argc, char *argv[]) {
     fprintf(2, "usage: find name\n");
     exit(1);
   } 
+  */
+  char *name = 0, *dir = 0;
+  int reflag = 0;
+
+  if (argv[1] == 0)
+    goto error;
+  dir = argv[1];
+
+  if (argv[2] == 0)
+    goto error;
+  if (strcmp(argv[2], "-re") == 0) {
+    reflag = 1;
+    if (argv[3] == 0)
+      goto error;
+    name = argv[3];
+    if (argv[4] != 0 && strcmp(argv[4], "-exec") != 0) {
+      goto error;
+    }
+    if (argv[4] == 0) {
+      find(dir, name, 0, reflag);
+    } else {
+      find(dir, name, argv+5, reflag);
+    }
+  } else {
+    name = argv[2];
+    if (argv[3] != 0 && strcmp(argv[3], "-exec") != 0) 
+      goto error;
+    if (argv[3] == 0) {
+      find(dir, name, 0, reflag);
+    } else {
+      find(dir, name, argv+4, reflag);
+    }
+  }
+
+
+error:
+  printf("usage: find <dir> [-re] <name/pattern(when -re)> [-exec cmd]\n");
   exit(0);
 }
