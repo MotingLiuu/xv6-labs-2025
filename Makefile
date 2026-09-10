@@ -43,12 +43,14 @@ ifdef KCSAN
 OBJS_KCSAN += \
 	$K/kcsan.o
 endif
+# This means if make KCSAN=1 then compile kernel/kcsan.o
 
 ifeq ($(LAB),lock)
 OBJS += \
 	$K/stats.o\
 	$K/sprintf.o
 endif
+# If LAB == lock, add stats.o and sprintf.o i nto kernel
 
 
 ifeq ($(LAB),net)
@@ -57,6 +59,7 @@ OBJS += \
 	$K/net.o \
 	$K/pci.o
 endif
+# If LAB = net, add e1000.o, net.o, pci.o into kernel
 
 
 # riscv64-unknown-elf- or riscv64-linux-gnu-
@@ -130,12 +133,12 @@ LDFLAGS = -z max-page-size=4096
 
 $K/kernel: $(OBJS) $(OBJS_KCSAN) $K/kernel.ld
 	$(LD) $(LDFLAGS) -T $K/kernel.ld -o $K/kernel $(OBJS) $(OBJS_KCSAN)
-	$(OBJDUMP) -S $K/kernel > $K/kernel.asm
-	$(OBJDUMP) -t $K/kernel | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $K/kernel.sym
+	$(OBJDUMP) -S $K/kernel > $K/kernel.asm # this would save the asm code corresponding to the kernel in $/kernel.asm
+	$(OBJDUMP) -t $K/kernel | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $K/kernel.sym # this would save the symbol table corresponding to the kernel in $/kernel.sym
 $(OBJS): EXTRAFLAG := $(KCSANFLAG)
 
-$K/%.o: $K/%.c
-	$(CC) $(CFLAGS) $(EXTRAFLAG) -c -o $@ $<
+$K/%.o: $K/%.c # % is wildcard, so $K/%.o means the object file corresponding to the source file $K/*.c
+	$(CC) $(CFLAGS) $(EXTRAFLAG) -c -o $@ $< # $@ is an automatic variable that means the target of the rule $< is another automatic variable means the first prerequisite. e.g. kernel/proc.c the expanded code is -c -o kernel/proc.o kernel/proc.c
 
 $K/%.o: $K/%.S
 	$(CC) -g -c -o $@ $<
@@ -169,6 +172,18 @@ $U/_forktest: $U/forktest.o $(ULIB)
 mkfs/mkfs: mkfs/mkfs.c $K/fs.h $K/param.h
 	gcc $(XCFLAGS) -Werror -Wall -I. -o mkfs/mkfs mkfs/mkfs.c
 
+REGEXLIB = \
+	$U/regex.o \
+	$U/nfa.o \
+	$U/parser.o \
+	$U/lexer.o \
+	$U/ast.o 
+
+$U/_find: $U/find.o $(REGEXLIB) $(ULIB) $U/user.ld
+	$(LD) $(LDFLAGS) -T $U/user.ld -o $@ $U/find.o $(REGEXLIB) $(ULIB)
+	$(OBJDUMP) -S $@ > $U/find.asm
+	$(OBJDUMP) -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $U/find.sym
+
 # Prevent deletion of intermediate files, e.g. cat.o, after first build, so
 # that disk image changes after first build are persistent until clean.  More
 # details:
@@ -200,8 +215,6 @@ UPROGS=\
 	$U/_fstat_ex1\
 	$U/_find\
 	$U/_uptime\
-
-
 
 
 ifeq ($(LAB),syscall)
