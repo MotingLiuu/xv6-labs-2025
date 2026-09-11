@@ -169,6 +169,24 @@ $U/_forktest: $U/forktest.o $(ULIB)
 mkfs/mkfs: mkfs/mkfs.c $K/fs.h $K/param.h
 	gcc $(XCFLAGS) -Werror -Wall -I. -o mkfs/mkfs mkfs/mkfs.c
 
+REGEXLIB = \
+	$U/regex.o \
+	$U/nfa.o \
+	$U/parser.o \
+	$U/lexer.o \
+	$U/ast.o 
+
+$U/_find: $U/find.o $(REGEXLIB) $(ULIB) $U/user.ld
+	$(LD) $(LDFLAGS) -T $U/user.ld -o $@ $U/find.o $(REGEXLIB) $(ULIB)
+	$(OBJDUMP) -S $@ > $U/find.asm
+	$(OBJDUMP) -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $U/find.sym
+
+$U/_grep: $U/grep.o $(REGEXLIB) $(ULIB) $U/user.ld
+	$(LD) $(LDFLAGS) -T $U/user.ld -o $@ $U/grep.o $(REGEXLIB) $(ULIB)
+	$(OBJDUMP) -S $@ > $U/grep.asm
+	$(OBJDUMP) -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $U/grep.sym
+
+
 # Prevent deletion of intermediate files, e.g. cat.o, after first build, so
 # that disk image changes after first build are persistent until clean.  More
 # details:
