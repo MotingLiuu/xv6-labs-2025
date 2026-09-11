@@ -203,7 +203,7 @@ runcmd(struct cmd *cmd)
 }
 
 int
-getcmd(char *buf, int nbuf, char promptflag)
+getcmd(char *buf, int nbuf, int promptflag, int compflag)
 {
   if (promptflag) {
     write(2, "$ ", 2);
@@ -232,7 +232,8 @@ main(void)
 {
   static char buf[100];
   struct stat st;
-  int promptflag = 1;
+  int prompt = 1;
+  int comp = 0;
   int fd;
 
   // Ensure that three file descriptors are open.
@@ -254,11 +255,14 @@ main(void)
     exit(1);
   }
   if (st.type == T_FILE) {
-    promptflag = 0;
+    prompt = 0;
+  }
+  if (st.type == T_DEVICE) {
+    comp = 1;
   }
 
   // Read and run input commands.
-  while(getcmd(buf, sizeof(buf), promptflag) >= 0){
+  while(getcmd(buf, sizeof(buf), prompt, comp) >= 0){
     char *cmd = buf;
     while (*cmd == ' ' || *cmd == '\t')
       cmd++;
