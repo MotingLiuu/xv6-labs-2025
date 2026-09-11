@@ -1,6 +1,7 @@
 // Shell.
 
 #include "kernel/types.h"
+#include "kernel/stat.h"
 #include "user/user.h"
 #include "kernel/fcntl.h"
 
@@ -202,9 +203,11 @@ runcmd(struct cmd *cmd)
 }
 
 int
-getcmd(char *buf, int nbuf)
+getcmd(char *buf, int nbuf, char promptflag)
 {
-  write(2, "$ ", 2);
+  if (promptflag) {
+    write(2, "$ ", 2);
+  }
 
   /*
    * what is write(2, "$ ", 2)? write 2 bytes to fd 2? why fd 2?
@@ -228,6 +231,8 @@ int
 main(void)
 {
   static char buf[100];
+  struct stat st;
+  int promptflag = 1;
   int fd;
 
   // Ensure that three file descriptors are open.
@@ -243,8 +248,17 @@ main(void)
     }
   }
 
+  // get the information from fd 0 to see whether the getcmd would read from a file
+  if (fstat(0, &st) < 0) {
+    fprintf(2, "find: cannot stat stdin, this message should only be printed when processing cmd from a file\n");
+    exit(1);
+  }
+  if (st.type == T_FILE) {
+    promptflag = 0;
+  }
+
   // Read and run input commands.
-  while(getcmd(buf, sizeof(buf)) >= 0){
+  while(getcmd(buf, sizeof(buf), promptflag) >= 0){
     char *cmd = buf;
     while (*cmd == ' ' || *cmd == '\t')
       cmd++;
