@@ -156,8 +156,9 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  exit(0);
 
 error:
   printf("usage: find <dir> [-re] <name/pattern(when -re)> [-exec cmd]\n");
-  exit(0);
+  exit(1);
 }

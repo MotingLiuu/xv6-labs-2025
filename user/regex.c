@@ -18,6 +18,7 @@ int matchstr(char *pattern, char *str) {
         fprintf(0, "regex: lex error\n");
         goto cleanup;
     }
+    // printf("DEBUG: lexer %d", show_tokens(&ts));
 
     parser.ts = ts;
     parser.pos = 0;
@@ -25,11 +26,14 @@ int matchstr(char *pattern, char *str) {
         fprintf(0, "regex: parse error\n");
         goto cleanup;
     }
+    // printf("DEBUG: ast %d:", show_ast(ast, 0));
 
     if (nfa(ast, &start) == -1) {
         fprintf(0, "regex: nfa construction error\n");
         goto cleanup;
     }
+
+    // printf("DEBUG: nfa %d:", show_nfa(start, 0));
 
     matched = nfamatch(start, str);
     ret = matched;

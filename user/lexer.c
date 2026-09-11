@@ -4,6 +4,7 @@
 
 int lex(const char *src, TokenStream *out) {
     out->tokens = malloc(sizeof(Token) * MAX_TOKENS);
+    memset(out->tokens, 0, sizeof(Token) * MAX_TOKENS);
     int pos = 0, count = 0;
     while (*src) {
         switch (*src) {
@@ -11,6 +12,27 @@ int lex(const char *src, TokenStream *out) {
                 out->tokens[count].kind = TOK_CHAR;
                 out->tokens[count].ch = *src;
                 out->tokens[count].pos = pos;
+                pos++;
+                break;
+            case '\\':
+                src++;
+                switch (*src) {
+                  default:
+                    out->tokens[count].kind = TOK_CHAR;
+                    out->tokens[count].ch = *src;
+                    out->tokens[count].pos = pos;
+                    break;
+                  case '\0':
+                    printf("Error: unknown escape sequence\n");
+                    exit(1);
+                    break;
+                  case '.':
+                    out->tokens[count].kind = TOK_CHAR;
+                    out->tokens[count].ch = *src;
+                    out->tokens[count].backslash = 1;
+                    out->tokens[count].pos = pos;
+                    break;
+                }
                 pos++;
                 break;
             case '|':
@@ -58,6 +80,8 @@ int lex(const char *src, TokenStream *out) {
     count++;
     out->count = count;
 
+    // printf("DEBUG:%d\n", show_tokens(out));
+
     return 0;
 }
 
@@ -68,7 +92,7 @@ int free_tokens(TokenStream *ts) {
 
 int show_tokens(const TokenStream *ts) {
     for (int i = 0; i < ts->count; i++) {
-        printf("Type: %d, Pos: %d, Ch: %c\n", ts->tokens[i].kind, ts->tokens[i].pos, ts->tokens[i].ch);
+        printf("Type: %d, Pos: %d, Ch: %c, Ba: %d\n", ts->tokens[i].kind, ts->tokens[i].pos, ts->tokens[i].ch, ts->tokens[i].backslash);
     }
     return 0;
 }

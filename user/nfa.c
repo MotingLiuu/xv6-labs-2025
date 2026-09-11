@@ -142,6 +142,7 @@ int nfa_atom(AstNode *ast, NfaNode **start, DanNfa **dang) {
         node1->kind = NFA_NOR;
         node1->id = nfaid++;
         node1->visited = 0;
+        node1->backslash = ast->atom.backslash;
         node1->c1 = ast->atom.ch;
         node1->c2 = 0;
         node1->next1 = 0;
@@ -443,7 +444,7 @@ int step(MatchList *list1, MatchList *list2, char c)
         switch (node->kind) {
 
         case NFA_NOR:
-            if (node->c1 == c || node->c1 == '.') {
+            if (node->c1 == c || (node->c1 == '.' && !(node->backslash))) {
                 if (addstate(list2, node->next1) == -1) {
                     return -1;
                 }

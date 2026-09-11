@@ -34,6 +34,7 @@ struct AstNode {
         struct {
             int is_char;
             char ch;
+            int backslash;
             AstNode *alt;
         } atom;
     };
