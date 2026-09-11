@@ -109,12 +109,17 @@ sys_uptime(void)
 uint64
 sys_interpose(void) {
   int n;
+  uint64 addr;
   struct proc *p;
 
   argint(0, &n);
   p = myproc();
   acquire(&(p->lock));
   p->sysmask = n;
+
+  argaddr(1, &addr);
+  copyinstr(p->pagetable, p->spath, addr, MAXPATH);
+
   release(&(p->lock));
 
   return 0; 

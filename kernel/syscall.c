@@ -134,13 +134,29 @@ void
 syscall(void)
 {
   int num;
+  char superpath[MAXPATH];
+  uint64 superaddr;
   struct proc *p = myproc();
 
   num = p->trapframe->a7;
-  if ((1 << num) == p->sysmask) {
+  if ((1 << num) & p->sysmask) {
     // Syscall is disabled.
     // printf("DEBUG: %d %s: system call %d disabled\n", p->pid, p->name, num);
-    p->trapframe->a0 = -1;
+    if (num == SYS_exec || num == SYS_open) {
+      argaddr(0, &superaddr);
+      if (copyinstr(p->pagetable, superpath, superaddr, MAXPATH) < 0) {
+        goto error;
+      }
+      // printf("DEBUG: superpath: %s spath: %s\n", superpath, p->spath);
+      if (strncmp(p->spath, superpath , MAXPATH) == 0) {
+        p->trapframe->a0 = syscalls[num]();
+      } else {
+        goto error;
+      }
+    } else {
+      goto error;
+    } 
+
   } else if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
     // Use num to lookup the system call function for num, call it,
     // and store its return value in p->trapframe->a0
@@ -148,6 +164,18 @@ syscall(void)
   } else {
     printf("%d %s: unknown sys call %d\n",
             p->pid, p->name, num);
-    p->trapframe->a0 = -1;
+    goto error;
   }
+
+  return;
+
+error:
+  p->trapframe->a0 = -1;
 }
+
+
+
+
+
+
+
