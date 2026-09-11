@@ -24,7 +24,7 @@ argfd(int n, int *pfd, struct file **pf)
   int fd;
   struct file *f;
 
-  argint(n, &fd);
+  argint(n, &fd); //MT: save the p->trapframe->a0 into fd, the first argument of read(fd, buf, n)
   if(fd < 0 || fd >= NOFILE || (f=myproc()->ofile[fd]) == 0)
     return -1;
   if(pfd)
@@ -72,8 +72,8 @@ sys_read(void)
   int n;
   uint64 p;
 
-  argaddr(1, &p); // save the address of the first argument into p
-  argint(2, &n); // save the second argument into n, assume that 2nd arg is an int
+  argaddr(1, &p); // save the address of the first argument into p, the va of argv+1, read(fd, buf, n), this is the va of buf 
+  argint(2, &n); // save the second argument into n, assume that 2nd arg is an int, n
                  // The difference between argaddr and argint is that treating arg as an address or an int.
   if(argfd(0, 0, &f) < 0)
     return -1;
@@ -312,7 +312,7 @@ sys_open(void)
   int n;
 
   argint(1, &omode);
-  //MT: read the second argument of open() save it into omode
+  //MT: read the second argument of open(char *file, int flags) save it into omode. The flags
   if((n = argstr(0, path, MAXPATH)) < 0)
   //MT: read the first argument, a string terminated with '\0', into path
     return -1;
