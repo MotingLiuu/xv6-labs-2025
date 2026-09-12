@@ -54,6 +54,7 @@ kexec(char *path, char **argv)
 
   if((pagetable = proc_pagetable(p)) == 0)
     goto bad;
+  // printf("DEBUG: pagetable=%lx\n", (unsigned long)pagetable);
 
   // Load program into memory.
   for(i=0, off=elf.phoff; i<elf.phnum; i++, off+=sizeof(ph)){
@@ -68,8 +69,11 @@ kexec(char *path, char **argv)
     if(ph.vaddr % PGSIZE != 0)
       goto bad;
     uint64 sz1;
+    // uint64 pa;
     if((sz1 = uvmalloc(pagetable, sz, ph.vaddr + ph.memsz, flags2perm(ph.flags))) == 0)
       goto bad;
+    // pa = walkaddr(pagetable, sz);
+    // printf("DEBUG: path=%s, uvmalloc sz=%lx, pa=%lx\n", path, PGROUNDUP(sz1), pa);
     sz = sz1;
     if(loadseg(pagetable, ph.vaddr, ip, ph.off, ph.filesz) < 0)
       goto bad;
@@ -77,6 +81,7 @@ kexec(char *path, char **argv)
   iunlockput(ip);
   end_op();
   ip = 0;
+
 
   p = myproc();
   uint64 oldsz = p->sz;
@@ -86,12 +91,17 @@ kexec(char *path, char **argv)
   // Use the rest as the user stack.
   sz = PGROUNDUP(sz);
   uint64 sz1;
+  // uint64 pa;
   if((sz1 = uvmalloc(pagetable, sz, sz + (USERSTACK+1)*PGSIZE, PTE_W)) == 0)
     goto bad;
+  // pa = walkaddr(pagetable, sz);
+  // printf("DEBUG: path=%s, uvmalloc sz=%lx, pa=%lx\n", path, PGROUNDUP(sz1), pa);
   sz = sz1;
   uvmclear(pagetable, sz-(USERSTACK+1)*PGSIZE);
   sp = sz;
   stackbase = sp - USERSTACK*PGSIZE;
+  // pa = walkaddr(pagetable, sp-1);
+  // printf("DEBUG: path=%s, sp=%lx, spbase=%lx, pa=%lx\n", path, sp, pa-USERSTACK*PGSIZE, pa);
 
   // Copy argument strings into new stack, remember their
   // addresses in ustack[].
@@ -99,6 +109,8 @@ kexec(char *path, char **argv)
     if(argc >= MAXARG)
       goto bad;
     sp -= strlen(argv[argc]) + 1;
+    // pa = walkaddr(pagetable, sp);
+    // printf("DEBUG: argc=%ld, %s, sp=%lx, pa of argv[%ld]=%lx\n", argc, argv[argc], sp, argc, pa+((sp<<52)>>52));
     sp -= sp % 16; // riscv sp must be 16-byte aligned
     if(sp < stackbase)
       goto bad;
