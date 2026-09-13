@@ -22,7 +22,7 @@ void
 acquire(struct spinlock *lk)
 {
   push_off(); // disable interrupts to avoid deadlock.
-  if(holding(lk))
+  if(holding(lk)) // MT: panic if cur cpu holding the lk
     panic("acquire");
 
   // On RISC-V, sync_lock_test_and_set turns into an atomic swap:
@@ -85,10 +85,17 @@ holding(struct spinlock *lk)
 // it takes two pop_off()s to undo two push_off()s.  Also, if interrupts
 // are initially off, then push_off, pop_off leaves them off.
 
+// MT: This function does 2 things:
+// MT: 1. It disables interrupts
+// MT: 2. It increments the noff field in the cpu struct. or set the intena field
 void
 push_off(void)
 {
   int old = intr_get();
+  // MT: why this line do not be executed after acquire the lock?
+  // MT: If there is a interruption, then the cpu running this code would be changed,this line would read, or when executing ecall interruption has already been disabled? This is not the truth for we should set SIE to 1 to disable interrupts.  
+
+
 
   // disable interrupts to prevent an involuntary context
   // switch while using mycpu().
@@ -97,6 +104,7 @@ push_off(void)
   if(mycpu()->noff == 0)
     mycpu()->intena = old;
   mycpu()->noff += 1;
+  // MT: if noff is used, just add 1 to it
 }
 
 void

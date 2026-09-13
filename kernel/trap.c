@@ -63,6 +63,10 @@ usertrap(void)
 
     // an interrupt will change sepc, scause, and sstatus,
     // so enable only now that we're done with those registers.
+    // MT: after trap, The CPU status should be stored into trapframe right after
+    // MT: the trap. If CPU was interrupted, we can not save the right CPU status for
+    // MT: the CPU running the proc could be assigned to another proc. 
+    // MT: So when trap, CPU's SIE is set to 0 to disable interrupts, after saving the corresponding cpu status, we can enable interrupt again.
     intr_on();
 
     syscall();

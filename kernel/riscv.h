@@ -301,6 +301,9 @@ static inline int
 intr_get()
 {
   uint64 x = r_sstatus();
+  //MT: SIE = 0 disable S-mode inter
+  //MT: SPIE: SIE before trap
+  //MT: SPP: which priviledge was in before trap
   return (x & SSTATUS_SIE) != 0;
 }
 
