@@ -83,6 +83,8 @@ kalloc(void)
     kmem.freelist = r->next;
   }
   release(&kmem.lock);
+  // MT: This invariant is, kmem.freelist should point the first free page
+  // MT: kmem.freelist can not be changed by other threads.
 #ifndef LAB_SYSCALL
   if(r)
     memset((char*)r, 5, PGSIZE); // fill with junk

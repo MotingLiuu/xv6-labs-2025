@@ -37,8 +37,11 @@ main()
     __sync_synchronize();
     printf("hart %d starting\n", cpuid());
     kvminithart();    // turn on paging
+    // printf("DEBUG: %d passed kvminit\n", cpuid());
     trapinithart();   // install kernel trap vector
+    // printf("DEBUG: %d passed trapinit\n", cpuid());
     plicinithart();   // ask PLIC for device interrupts
+    // printf("DEBUG: %d passed plicinit\n", cpuid());
   }
 
   scheduler();        
