@@ -103,6 +103,7 @@ supercheck(char *end)
       err("no pte");
     }
   }
+  // Check whether form end to ROUDUP(end) are normal pages
 
   for (uint64 p = s;  p < s + 512 * PGSIZE; p += PGSIZE) {
     pte_t pte = (pte_t) pgpte((void *) p);
@@ -116,10 +117,14 @@ supercheck(char *end)
     }
     last_pte = pte;
   }
+  // Check whether form ROUDUP(end) to ROUNDUP(end) + 512 * PGSIZE are SUPER pages?
+  // The normal pages contained by the super page should has the same L1 pte.
 
   for(int i = 0; i < 512 * PGSIZE; i += PGSIZE){
     *(int*)(s+i) = i;
   }
+  // Write to the normal pages contained by the super page to i.
+  // SUPER(P0: 0... P1: 1... P2: 2... )
 
   for(int i = 0; i < 512 * PGSIZE; i += PGSIZE){
     if(*(int*)(s+i) != i)
