@@ -1,6 +1,8 @@
 // Format of an ELF executable file
 
 #define ELF_MAGIC 0x464C457FU  // "\x7FELF" in little endian
+// The last U in ELF_MAGIC means this is a unsigned int.
+// Magic Number:
 
 // File header
 struct elfhdr {
