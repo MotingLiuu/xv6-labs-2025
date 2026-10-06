@@ -116,6 +116,13 @@ walk(pagetable_t pagetable, uint64 va, int alloc)
   }
   return &pagetable[PX(0, va)];
 }
+// MT: This is a problem in walk, walk would only return the l0 leaf pte
+// To support the superpage, l1 pte should be returned
+// So if superpage walk should return l1 pte.
+// if normal page walk should return l0 pte.
+//
+// we can not use pte_v, pte_r, pte_w and pte_x to check whether l1 pte is a leaf pte.
+// because we should return leaf pte first to create a l1 pte. At this point, walk returns l0 pte.
 
 // Look up a virtual address, return the physical address,
 // or 0 if not mapped.

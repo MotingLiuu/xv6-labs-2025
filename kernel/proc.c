@@ -210,9 +210,9 @@ proc_pagetable(struct proc *p)
 void
 proc_freepagetable(pagetable_t pagetable, uint64 sz)
 {
-  uvmunmap(pagetable, TRAMPOLINE, 1, 0);
-  uvmunmap(pagetable, TRAPFRAME, 1, 0);
-  uvmfree(pagetable, sz);
+  uvmunmap(pagetable, TRAMPOLINE, 1, 0); // User proc doesn't own this trampoline page
+  uvmunmap(pagetable, TRAPFRAME, 1, 0); // User proc doesn't own this trapframe page
+  uvmfree(pagetable, sz); // MT: This would call unvunmap(pgt, sz, 1, 1) which would free the memo recorded in the pagetable and free the pagetable itself
 }
 
 // Set up first user process.
