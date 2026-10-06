@@ -10,11 +10,12 @@
  *  ...
  *
  * Linker does:
- * 1. merge sections: linker would merge sections with the same permissions to a single section
- * 2. Decide the address of each section
- * 3. Do relocation
+ * 1. merge sections: Map input sections from .o file into output sections according to .ld
+ * 2. Decide the VMA/LMA of output sections.
+ * 3. Resolve the symbols and perform relocation. Question: what does this mean?
  * 4. Determine the entry point
  * 5. Generate the ELF header / program header
+ * Output sections may later be grouped in to loadable SEGMENTS according to their attributes/permissions.
  *
  *
  * ELF Header describes the basic information of the executable file.
@@ -33,13 +34,13 @@
 
 /*
  * OUTPUT_ARCH( "riscv" ) sets the target architecture to riscv
- * ENTRY( _entry ) sets the entry point to _entry
+ * ENTRY( _entry ) sets the e_entry in ELF Header to _entry's final address. Question: is this va or pa?
  */
 OUTPUT_ARCH( "riscv" )
 ENTRY( _entry )
 
 /*
- * SECTIONS block describes the final va layout
+ * SECTIONS describes how input sections are mapped into output sections and determine the VMAs of those output sections.
  */
 SECTIONS
 {
@@ -52,13 +53,15 @@ SECTIONS
   . = 0x80000000;
 
   /*
-  * PROVIDE(symbol = .), define a global symbol which can be accessed in c code through (extern char symbol[], result is
-  * the current va).
+  * PROVIDE(symbol = .), If etext is referenced but not defined elsewhere, define linker symbol etext whose value is the current location counter.
   *
-  * 1. kernel/entry.o(_entry) puts the entry point at 0x80000000
-  * 2. *(.text .text.*) puts the text section in compiled o file after the entry point
+  * 1. kernel/entry.o(_entry) is [filename(section-name)], this means select the _entry section from kernel/entry.o, but there is no section named _entry
+  * 2. *(.text .text.*), * means the input files, .text means .text section in .o file, .text.* means .text.foo, .text.main ...
   * 3. _trampoline = ., define a symbol for the trampoline section
-  * 4. Question: what is *(trampsec)? what is *(.text .text.*), why there is 2 member in *()?
+  * 4. Question: what is *(trampsec)?
+  *    Answer: *(trampsec) means select the trampsec section from the input files.
+  *    Question: Will not trampoline.S be compiler into .o file with .text section? If specific the section and its name,
+  *    the output file compiled only will only contain the specified section? In what case, the section name is .text? what doest .text represent?
   * 5. Question: .srodata (Small Read-Only Data), RISV-V compiler puts small read-only data .srodata, use gp to access
   * explain in detail
   * 6. Question: what is static var?
@@ -67,6 +70,9 @@ SECTIONS
     kernel/entry.o(_entry)
     *(.text .text.*)
     . = ALIGN(0x1000);
+    /*
+     * set the current address to PAGEUPGROUND(current address)
+     */
     _trampoline = .;
     *(trampsec)
     . = ALIGN(0x1000);
@@ -77,7 +83,7 @@ SECTIONS
   /*
   * .srodata (Small Read-Only Data), RISV-V compiler puts small read-only data .srodata, use gp to access
   */
-  .rodata :
+  .rodata : {
     . = ALIGN(16);
     *(.srodata .srodata.*) /* do not need to distinguish this from .rodata */
     . = ALIGN(16);
