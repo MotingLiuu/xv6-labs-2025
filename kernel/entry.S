@@ -1,3 +1,7 @@
+# Summary:
+# 1.set up stack(which is already reserved by linker, char stack0[4096*NCPU] in start.c)
+# 2. jump to start
+#
         # qemu -kernel loads the kernel at 0x80000000
         # and causes each hart (i.e. CPU) to jump there.
         # kernel.ld causes the following code to

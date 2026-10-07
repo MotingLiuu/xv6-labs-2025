@@ -1,3 +1,10 @@
+// Summary:
+// 1. set up mstatus.MPP and mepc. use mret to jump into main and s-mode
+// 2. delegate all interrupts(mideleg) and exceptions(medeleg) to s mode, enable SIE_SEIE and SIE_STIE
+// 3. set PMP
+// 4. enable timer interrupt
+// 5. save mhartid into tp with w_tp() in advance, for mhartid is a M mode register, can not be accessed in S mode
+
 #include "types.h"
 #include "param.h"
 #include "memlayout.h"
@@ -47,7 +54,7 @@ start()
   // 2. change the privilege mode to the value in mstatus.MPP
   // 3. restore the machine interrupt-enable state: MIE gets the old value of MPIE, and MPIE is set to 1.
   // set M Exception Program Counter to main, for mret.
-  // 4. restets MPP to the least-privilege mode
+  // 4. restets MPP to the least-privilege
   // requires gcc -mcmodel=medany
   w_mepc((uint64)main);
 
@@ -55,12 +62,34 @@ start()
   w_satp(0);
 
   // delegate all interrupts and exceptions to supervisor mode.
+  //
+  // medeleg decides which exceptions are delegated to supervisor mode.
+  //
+  // mideleg decides which interrupts are delegated to supervisor mode.
+  //
+  // sie(Supervisor Interrupt Enable Register), SIE_SEIE(Supervisor External Interrupt Enable), SIE_STIE(Supervisor Timer Interrupt Enable)
+  // interrupt arrives
+  // -> mideleg, should this interrupt be delegated to supervisor mode?
+  // -> sie, is s-mode allowed to handle this interrupt?
+  // -> take s-mode interrupt
+
   w_medeleg(0xffff);
   w_mideleg(0xffff);
   w_sie(r_sie() | SIE_SEIE | SIE_STIE);
 
   // configure Physical Memory Protection to give supervisor mode
   // access to all of physical memory.
+  //
+  // pmpaddr0 saves the boundary of PMP0 region, physical boundary = pmpaddr0 << 2
+  // pmpcfg0 is a 8bit configuration, the first byte control pmpaddr0. 0x0f means TOR(TOP of Range), RWX
+  // 0x0f = 0000 1111
+  //        ││││ │││└ R
+  //        ││││ ││└─ W
+  //        ││││ │└── X
+  //        ││└└───── A
+  //        └──────── L
+  // Question: So access to a pa(write, read, excute) is checked by page's permission and pmp? two mechanisms?
+  // Answer: yes, PageTable controls va->pa and va's permission, PMP controls whether the final pa is accessible(RWX) in S mode.
   w_pmpaddr0(0x3fffffffffffffull);
   w_pmpcfg0(0xf);
 
