@@ -24,7 +24,7 @@ struct inode {
   short type;         // copy of disk inode
   short major;
   short minor;
-  short nlink;
+  short nlink; // number of hard links to this inode, represents the number of times this inode is pointed to by file name
   uint size;
   uint addrs[NDIRECT+1];
 };
