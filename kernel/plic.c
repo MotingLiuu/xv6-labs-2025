@@ -12,6 +12,8 @@ void
 plicinit(void)
 {
   // set desired IRQ priorities non-zero (otherwise disabled).
+  // PLIC(Platform-Level Interrupt Controller), When UART and VirtIO need to inform CPU and interrupt.
+  // Device will send interrupt request to PLIC, PLIC will send interrupt request to CPU based on priority and configuration.
   *(uint32*)(PLIC + UART0_IRQ*4) = 1;
   *(uint32*)(PLIC + VIRTIO0_IRQ*4) = 1;
 }
@@ -20,7 +22,7 @@ void
 plicinithart(void)
 {
   int hart = cpuid();
-  
+
   // set enable bits for this hart's S-mode
   // for the uart and virtio disk.
   *(uint32*)PLIC_SENABLE(hart) = (1 << UART0_IRQ) | (1 << VIRTIO0_IRQ);
