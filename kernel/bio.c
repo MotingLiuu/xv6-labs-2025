@@ -52,9 +52,11 @@ binit(void)
   }
 }
 
+// Summary:
 // Look through buffer cache for block on device dev.
-// If not found, allocate a buffer.
-// In either case, return locked buffer.
+// 1. If not found, allocate a buffer.
+//    b->dev = dev, b->blockno = blockno, b->valid = 0, b->refcnt = 1.
+// 2. In either case, return locked buffer. refcnd++.
 static struct buf*
 bget(uint dev, uint blockno)
 {
@@ -79,6 +81,7 @@ bget(uint dev, uint blockno)
       b->dev = dev;
       b->blockno = blockno;
       b->valid = 0;
+      // Question: what does buf's valid mean? Does it mean it's data has read from block?
       b->refcnt = 1;
       release(&bcache.lock);
       acquiresleep(&b->lock);
@@ -88,6 +91,10 @@ bget(uint dev, uint blockno)
   panic("bget: no buffers");
 }
 
+// Summary:
+// 1. find buf of (dev, blockno) form cache.
+//    if find(valid = 1), return b
+//    if not(valid = 0), call virtio_disk_rw(b, 0), set b->valid = 1;
 // Return a locked buf with the contents of the indicated block.
 struct buf*
 bread(uint dev, uint blockno)
@@ -132,7 +139,7 @@ brelse(struct buf *b)
     bcache.head.next->prev = b;
     bcache.head.next = b;
   }
-  
+
   release(&bcache.lock);
 }
 
@@ -149,5 +156,3 @@ bunpin(struct buf *b) {
   b->refcnt--;
   release(&bcache.lock);
 }
-
-
