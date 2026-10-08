@@ -9,4 +9,3 @@ struct buf {
   struct buf *next;
   uchar data[BSIZE];
 };
-// Question: the sleeplock only proc the data? Other item is protected by table spinklock?
