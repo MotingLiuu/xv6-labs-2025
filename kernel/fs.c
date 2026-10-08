@@ -288,8 +288,21 @@ idup(struct inode *ip)
   return ip;
 }
 
-// Lock the given inode.
-// Reads the inode from disk if necessary.
+// Summay:
+// iget(): find unused inode entry, put key used to find inode into it.
+// 1. find a unused inode entry in itable.
+// 2. write dev and inum into entry. only the key to find an inode.
+//
+// ilock(inode *ip): lock ip and read inode's data to ip
+// 1. acquiresleep lock of the given inode
+// 2. if inode is not valid, call bread(), read the block which contains ip->inum inode, to bcache.
+// 3. compute the address of inode's metadata in the buf. (dip)
+// 4. brelease content in bcache
+//
+// Question:
+// 1. To read or write itable's entry's dev, inum, need to get itable's lock?
+// 2. I which case, should get entry's sleep lock?
+// 3. what is the life circle of entry in itable
 void
 ilock(struct inode *ip)
 {
