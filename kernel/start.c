@@ -28,6 +28,9 @@ start()
   // mstatus register's MPP(Machine Previous Privilege), records the previous privilege mode before trap or exception.
   //
   // mstatus register's MIE(Machine Interrupt Enable), MIE == 1 means machine-level interrupt is allowed. mstatus.MIE is main switch, mie.MTIE, mie.MEIE is the specific switch.
+  // 1. When CPU is in M mode, mstatus.MIE = 0 means disable Machine-level interrupt
+  // 2. When CPU is in S or U mode, CPU can handle Machine level interrupt even mstatus.MIE == 0
+  //
   // There is another CSR named mie, (contains MTIE(machine timer interrupt enable), MEIE(machine external interrupt enable), MSIE(machine software interrupt enable))
   //
   // mastatus.MPIE(Machine Previous Interrupt Enable), records the MIE's value before entering M-mode trap.
