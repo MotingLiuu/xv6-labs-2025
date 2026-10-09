@@ -33,14 +33,14 @@
 // Contents of the header block, used for both the on-disk header block
 // and to keep track in memory of logged block# before commit.
 struct logheader {
-  int n;
-  int block[LOGBLOCKS];
+  int n; // count of log blocks in this transaction
+  int block[LOGBLOCKS]; // array of home destination block/sector numbers, Log data slot 0 belongs to destination block block[0] on disk
 };
 
 struct log {
   struct spinlock lock;
   int start;
-  int outstanding; // how many FS sys calls are executing.
+  int outstanding; // how many FS sys calls are executing. The total reserved space is log.outstanding times MAXOPBLOCKS
   int committing;  // in commit(), please wait.
   int dev;
   struct logheader lh;
@@ -229,6 +229,7 @@ log_write(struct buf *b)
   }
   log.lh.block[i] = b->blockno;
   if (i == log.lh.n) {  // Add new block to log?
+                        // right aftet log_write(bp), the caller releases the buffer using brelse(bp), this drops bp->refcnt to 0, maeing the buffer eligible for eviction and recycling by bget() for another disk block. However, the dirty data has not been committed to disk. If another thread recycles bp before commit, the uncommitted modifications would be lost or corrupted. This ensure the buffer can not be evicted from the buffer cache until the transaction is committed and installed to disk, at which point bunpin() is called in install_trans()
     bpin(b);
     log.lh.n++;
   }
