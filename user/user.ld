@@ -10,7 +10,7 @@ SECTIONS
 
   .rodata : {
     . = ALIGN(16);
-    // just ensure the content of .rodata is start from address aligned by 16 bytes, not .rodata form address aligned by 16 bytes
+    /* just ensure the content of .rodata is start from address aligned by 16 bytes, not .rodata form address aligned by 16 bytes */
     *(.srodata .srodata.*) /* do not need to distinguish this from .rodata */
     . = ALIGN(16);
     *(.rodata .rodata.*)
