@@ -39,7 +39,7 @@ freerange(void *pa_start, void *pa_end)
   // superpage code
   p = (char*)SUPERPGROUNDUP((uint64)pa_start);
   sp_end = p + 10 * SUPERPGSIZE;
-  for (; p + SUPERPGSIZE <= (char *)(sp_end); p += PGSIZE)
+  for (; p + SUPERPGSIZE <= (char *)(sp_end); p += SUPERPGSIZE)
     superfree(p);
   for( p = sp_end; p + PGSIZE <= (char*)pa_end; p += PGSIZE)
     kfree(p);
