@@ -338,9 +338,9 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz, int xperm)
         superfree(mem);
         uvmdealloc(pagetable, a, oldsz);
         return 0;
-      } else {
-        panic("uvmalloc: sz not equals to PGSIZE or SUPERPGSIZE");
       }
+    } else {
+      panic("uvmalloc: sz is not PGSIZE or SUPERSIZE");
     }
   }
   return newsz;
