@@ -99,11 +99,13 @@ supercheck(char *end)
 
   for (; a < s; a += PGSIZE) {
     pte_t pte = (pte_t) pgpte((void *) a);
+    // pgpte returns the valid pte(PTE_V & PTE_R|W|X), if superpage return L1's pte, if normal page return L2's pte
+    // If not found, return 0
     if (pte == 0) {
       err("no pte");
     }
   }
-  // Check whether form end to ROUDUP(end) are normal pages
+  // Check whether from end to ROUDUP(end) are normal pages
 
   for (uint64 p = s;  p < s + 512 * PGSIZE; p += PGSIZE) {
     pte_t pte = (pte_t) pgpte((void *) p);
@@ -136,10 +138,10 @@ void
 superpg_fork()
 {
   int pid;
-  
+
   printf("superpg_fork starting\n");
   testname = "superpg_fork";
-  
+
   char *end = sbrk(SZ);
   if (end == 0 || end == SBRK_ERROR)
     err("sbrk failed");
