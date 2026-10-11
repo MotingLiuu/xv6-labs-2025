@@ -222,7 +222,7 @@ supermappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm
   a = va;
   last = va + size - SUPERPGSIZE;
   for(;;){
-    if((pte = walk(pagetable, a, 1)) == 0)
+    if((pte = superwalk(pagetable, a, 1)) == 0)
       return -1;
     if(*pte & PTE_V)
       panic("supermappages: remap");
@@ -306,11 +306,21 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz, int xperm)
     }
 #ifndef LAB_SYSCALL
     memset(mem, 0, sz);
- #endif
-    if(mappages(pagetable, a, sz, (uint64)mem, PTE_R|PTE_U|xperm) != 0){
-      kfree(mem);
-      uvmdealloc(pagetable, a, oldsz);
-      return 0;
+#endif
+    if(sz == PGSIZE) {
+      if(mappages(pagetable, a, sz, (uint64)mem, PTE_R|PTE_U|xperm) != 0){
+        kfree(mem);
+        uvmdealloc(pagetable, a, oldsz);
+        return 0;
+      }
+    } else if(sz == SUPERPGSIZE) {
+      if (supermappages(pagetable, a, sz, (uint64)mem, PTE_R|PTE_U|xperm) != 0) {
+        kfree(mem);
+        uvmdealloc(pagetable, a, oldsz);
+        return 0;
+      } else {
+        panic("uvmalloc: sz not equals to PGSIZE or SUPERPGSIZE");
+      }
     }
   }
   return newsz;
