@@ -185,7 +185,7 @@ void
 superpg_free()
 {
   int pid;
-  
+
   printf("superpg_free starting\n");
   testname = "superpg_free";
 
