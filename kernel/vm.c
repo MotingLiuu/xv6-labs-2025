@@ -124,6 +124,26 @@ walk(pagetable_t pagetable, uint64 va, int alloc)
 // we can not use pte_v, pte_r, pte_w and pte_x to check whether l1 pte is a leaf pte.
 // because we should return leaf pte first to create a l1 pte. At this point, walk returns l0 pte.
 
+// superpage code
+pte_t *
+superwalk(pagetable_t pagetable, uint64 va, int alloc)
+{
+  if(va >= MAXVA)
+    panic("walk");
+
+  pte_t *pte = &pagetable[PX(2, va)];
+  if(*pte & PTE_V) {
+    pagetable = (pagetable_t)PTE2PA(*pte);
+  } else {
+    if (!alloc || (pagetable = (pte_t*)kalloc()) == 0)
+      return 0;
+    memset(pagetable, 0, PGSIZE);
+    *pte = PA2PTE(pagetable) | PTE_V;
+  }
+
+  return &pagetable[PX(0, va)];
+}
+
 // Look up a virtual address, return the physical address,
 // or 0 if not mapped.
 // Can only be used to look up user pages.
@@ -315,7 +335,7 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz, int xperm)
       }
     } else if(sz == SUPERPGSIZE) {
       if (supermappages(pagetable, a, sz, (uint64)mem, PTE_R|PTE_U|xperm) != 0) {
-        kfree(mem);
+        superfree(mem);
         uvmdealloc(pagetable, a, oldsz);
         return 0;
       } else {
