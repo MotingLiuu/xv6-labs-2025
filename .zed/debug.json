@@ -1,17 +1,33 @@
 [
   {
-    "label": "xv6 kernel - LLDB DAP",
+    "label": "xv6 - test (CodeLLDB)",
     "adapter": "CodeLLDB",
     "request": "attach",
 
-    "program": "$ZED_WORKTREE_ROOT/kernel/kernel",
-
-    "preRunCommands": [
+    "targetCreateCommands": [
+      "target create \"$ZED_WORKTREE_ROOT/kernel/kernel\"",
       "target modules add \"$ZED_WORKTREE_ROOT/user/_test\"",
       "target modules load --file \"$ZED_WORKTREE_ROOT/user/_test\" --slide 0"
     ],
 
-    "attachCommands": [
+    "processCreateCommands": [
+      "gdb-remote 127.0.0.1:25501"
+    ],
+
+    "stopOnEntry": true
+  },
+  {
+    "label": "xv6 - pgtbltest (CodeLLDB)",
+    "adapter": "CodeLLDB",
+    "request": "attach",
+
+    "targetCreateCommands": [
+      "target create \"$ZED_WORKTREE_ROOT/kernel/kernel\"",
+      "target modules add \"$ZED_WORKTREE_ROOT/user/_pgtbltest\"",
+      "target modules load --file \"$ZED_WORKTREE_ROOT/user/_pgtbltest\" --slide 0"
+    ],
+
+    "processCreateCommands": [
       "gdb-remote 127.0.0.1:25501"
     ],
 
