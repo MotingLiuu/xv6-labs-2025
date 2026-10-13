@@ -38,13 +38,13 @@ int main(int argc, char** argv) {
   st_spva = SUPERPGROUNDDOWN((uint64)end - SUPERPGSIZE);
   ed_spva = SUPERPGROUNDUP((uint64)end - SUPERPGSIZE);
   print_pte(st_spva);
-  print_pte(ed_spva);
+  print_pte(st_spva + PGSIZE);
 
   sbrk(-SUPERPGSIZE);
   printf("st_spva: %p, ed_spva: %p\n", (char *)st_spva, (char *)ed_spva);
 
-  print_pte(st_spva - 2*PGSIZE);
-  print_pte(st_spva - PGSIZE);
+  print_pte(st_spva);
+  print_pte(st_spva + PGSIZE);
 
   return 0;
 }
