@@ -295,6 +295,33 @@ uvmcreate()
   return pagetable;
 }
 
+// superpage code
+void
+uvmdemote(pagetable_t pagetable, uint64 va) {
+  pte_t *pte;
+  uint64 flag, pa;
+  int sp = 0;
+
+  if(va % SUPERPGSIZE != 0)
+    panic("uvmdemote: not 2MB aligned");
+  if((pte = spwalk(pagetable, va, 0, &sp)) == 0)
+    panic("uvmdemote: page not exist");
+  if(sp == 0)
+    panic("uvmdemote: not super page");
+
+  pa = PTE2PA(*pte);
+  flag = PTE_FLAGS(*pte);
+
+  *pte = 0;
+
+  for(;va < va + SUPERPGSIZE; va += PGSIZE) {
+    if((pte = walk(pagetable, va, 1)) == 0)
+      panic("uvmdemote: can not create sub pg and return the final address");
+    *pte = PA2PTE(pa) | flag;
+    pa += PGSIZE;
+  }
+}
+
 // Remove npages of mappings starting from va. va must be
 // page-aligned. It's OK if the mappings don't exist.
 // Optionally free the physical memory.
@@ -303,22 +330,36 @@ uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
 {
   uint64 a;
   pte_t *pte;
-  int sz = PGSIZE;
+  int sz = PGSIZE, sp = 0;
 
   if((va % PGSIZE) != 0)
     panic("uvmunmap: not aligned");
 
   for(a = va; a < va + npages*PGSIZE; a += sz){
-    if((pte = walk(pagetable, a, 0)) == 0) // leaf page table entry allocated?
+    if((pte = spwalk(pagetable, a, 0, &sp)) == 0) // leaf page table entry allocated?
       continue;
     if((*pte & PTE_V) == 0)  // has physical page been allocated?
       continue;
-    sz = PGSIZE;
+    if(sp == 0) {
+      sz = PGSIZE;
+    } else {
+      sz = SUPERPGSIZE;
+    }
     if(PTE_FLAGS(*pte) == PTE_V)
       panic("uvmunmap: not a leaf");
     if(do_free){
-      uint64 pa = PTE2PA(*pte);
-      kfree((void*)pa);
+      if(sz == PGSIZE) {
+        uint64 pa = PTE2PA(*pte);
+        kfree((void*)pa);
+      } else {
+        if(va % SUPERPGSIZE == 0) {
+          uint64 pa = PTE2PA(*pte);
+          superfree((void*)pa);
+        } else {
+          uvmdemote(pagetable, SUPERPGROUNDDOWN(va));
+          sz = 0;
+        }
+      }
     }
     *pte = 0;
   }
