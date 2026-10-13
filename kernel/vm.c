@@ -108,7 +108,7 @@ walk(pagetable_t pagetable, uint64 va, int alloc)
       }
 #endif
     } else {
-      if(!alloc || (pagetable = (pde_t*)kalloc()) == 0)
+      if(!alloc || (pagetable = (pte_t*)kalloc()) == 0)
         return 0;
       memset(pagetable, 0, PGSIZE);
       *pte = PA2PTE(pagetable) | PTE_V;
@@ -142,6 +142,33 @@ superwalk(pagetable_t pagetable, uint64 va, int alloc)
   }
 
   return &pagetable[PX(1, va)];
+}
+
+pte_t *
+spwalk(pagetable_t pagetable, uint64 va, int alloc, int *sp)
+{
+  *sp = 0;
+  if(va >= MAXVA)
+    panic("walk");
+
+  for(int level = 2; level > 0; level--) {
+    pte_t *pte = &pagetable[PX(level, va)];
+    if(*pte & PTE_V) {
+      pagetable = (pagetable_t)PTE2PA(*pte);
+#ifdef LAB_PGTBL
+      if(PTE_LEAF(*pte)) {
+        *sp = 1;
+        return pte;
+      }
+#endif
+    } else {
+      if(!alloc || (pagetable = (pte_t*)kalloc()) == 0)
+        return 0;
+      memset(pagetable, 0, PGSIZE);
+      *pte = PA2PTE(pagetable) | PTE_V;
+    }
+  }
+  return &pagetable[PX(0, va)];
 }
 
 // Look up a virtual address, return the physical address,
@@ -408,14 +435,15 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
   uint64 pa, i;
   uint flags;
   char *mem;
-  int szinc = PGSIZE;
+  int szinc = PGSIZE, sp = 0;
 
   for(i = 0; i < sz; i += szinc){
-    if((pte = walk(old, i, 0)) == 0)
+    if((pte = spwalk(old, i, 0, &sp)) == 0)
       continue;
     if((*pte & PTE_V) == 0) {
       continue;
     }
+<<<<<<< HEAD
     if((next_pte = walk(old, i + PGSIZE, 0)) != pte) {
       szinc = PGSIZE;
     } else {
@@ -441,8 +469,33 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
           }
     } else {
       panic("uvmcopy: szinc is not PGSIZE or SUPERPGSIZE\n");
+=======
+    if(sp == 1) {
+      szinc = SUPERPGSIZE;
+    } else {
+      szinc = PGSIZE;
     }
-  }
+    pa = PTE2PA(*pte);
+    flags = PTE_FLAGS(*pte);
+    if(sp == 1) {
+      if((mem = superalloc()) == 0)
+        goto err;
+      memmove(mem, (char*)pa, SUPERPGSIZE);
+      if(supermappages(new, i, SUPERPGSIZE, (uint64)mem, flags) != 0) {
+        superfree(mem);
+        goto err;
+      }
+    } else {
+      if((mem = kalloc()) == 0)
+        goto err;
+      memmove(mem, (char*)pa, PGSIZE);
+      if(mappages(new, i, PGSIZE, (uint64)mem, flags) != 0){
+        kfree(mem);
+        goto err;
+      }
+>>>>>>> pgtblr
+    }
+ }
   return 0;
 
  err:
