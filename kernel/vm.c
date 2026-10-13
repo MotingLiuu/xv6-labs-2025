@@ -431,7 +431,7 @@ uvmfree(pagetable_t pagetable, uint64 sz)
 int
 uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
 {
-  pte_t *pte, *next_pte;
+  pte_t *pte;
   uint64 pa, i;
   uint flags;
   char *mem;
@@ -443,33 +443,6 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
     if((*pte & PTE_V) == 0) {
       continue;
     }
-<<<<<<< HEAD
-    if((next_pte = walk(old, i + PGSIZE, 0)) != pte) {
-      szinc = PGSIZE;
-    } else {
-      szinc = SUPERPGSIZE;
-    }
-    pa = PTE2PA(*pte);
-    flags = PTE_FLAGS(*pte);
-    if(szinc == PGSIZE) {
-      if((mem = kalloc()) == 0)
-            goto err;
-          memmove(mem, (char*)pa, PGSIZE);
-          if(mappages(new, i, PGSIZE, (uint64)mem, flags) != 0){
-            kfree(mem);
-            goto err;
-          }
-    } else if(szinc == SUPERPGSIZE) {
-      if((mem = superalloc()) == 0)
-            goto err;
-          memmove(mem, (char*)pa, SUPERPGSIZE);
-          if(supermappages(new, i, SUPERPGSIZE, (uint64)mem, flags) != 0){
-            superfree(mem);
-            goto err;
-          }
-    } else {
-      panic("uvmcopy: szinc is not PGSIZE or SUPERPGSIZE\n");
-=======
     if(sp == 1) {
       szinc = SUPERPGSIZE;
     } else {
@@ -493,7 +466,6 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
         kfree(mem);
         goto err;
       }
->>>>>>> pgtblr
     }
  }
   return 0;
