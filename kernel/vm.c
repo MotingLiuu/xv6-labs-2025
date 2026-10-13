@@ -299,7 +299,7 @@ uvmcreate()
 void
 uvmdemote(pagetable_t pagetable, uint64 va) {
   pte_t *pte;
-  uint64 flag, pa;
+  uint64 flag, pa, st;
   int sp = 0;
 
   if(va % SUPERPGSIZE != 0)
@@ -314,8 +314,8 @@ uvmdemote(pagetable_t pagetable, uint64 va) {
 
   *pte = 0;
 
-  for(;va < va + SUPERPGSIZE; va += PGSIZE) {
-    if((pte = walk(pagetable, va, 1)) == 0)
+  for(st = va; st < va + SUPERPGSIZE; st += PGSIZE) {
+    if((pte = walk(pagetable, st, 1)) == 0)
       panic("uvmdemote: can not create sub pg and return the final address");
     *pte = PA2PTE(pa) | flag;
     pa += PGSIZE;
@@ -357,7 +357,9 @@ uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
           superfree((void*)pa);
         } else {
           uvmdemote(pagetable, SUPERPGROUNDDOWN(va));
-          sz = 0;
+          sz = PGSIZE;
+          uint64 pa = PTE2PA(*pte);
+          kfree((void*)pa);
         }
       }
     }
