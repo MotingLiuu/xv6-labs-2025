@@ -39,6 +39,9 @@ int main(int argc, char** argv) {
   ed_spva = SUPERPGROUNDUP((uint64)end - SUPERPGSIZE);
   printf("st_spva: %p, ed_spva: %p\n", (char *)st_spva, (char *)ed_spva);
 
+  sbrk(-SUPERPGSIZE);
+  printf("st_spva: %p, ed_spva: %p\n", (char *)st_spva, (char *)ed_spva);
+
   print_pte(st_spva);
   print_pte(st_spva + PGSIZE);
 
