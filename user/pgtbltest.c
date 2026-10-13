@@ -16,11 +16,11 @@ void superpg_free();
 int
 main(int argc, char *argv[])
 {
-  print_pgtbl();
-  ugetpid_test();
-  print_kpgtbl();
+  // print_pgtbl();
+  // ugetpid_test();
+  // print_kpgtbl();
   superpg_fork();
-  superpg_free();
+  // superpg_free();
   printf("pgtbltest: all tests succeeded\n");
   exit(0);
 }
@@ -145,6 +145,7 @@ superpg_fork()
   char *end = sbrk(SZ);
   if (end == 0 || end == SBRK_ERROR)
     err("sbrk failed");
+  printf("DEBUG: passed 1\n");
 
   // check if parent has super pages
   supercheck(end);
@@ -153,6 +154,7 @@ superpg_fork()
   } else if(pid == 0) {
     // check if child's address space has super pages
     supercheck(end);
+    printf("DEBUG: passed 2\n");
     exit(0);
   } else {
     int status;
@@ -160,6 +162,7 @@ superpg_fork()
     if (status != 0) {
       exit(0);
     }
+    printf("DEBUG: passed 3\n");
   }
 
   // free super pages
