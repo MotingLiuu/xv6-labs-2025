@@ -19,7 +19,7 @@ main(int argc, char *argv[])
   // print_pgtbl();
   // ugetpid_test();
   // print_kpgtbl();
-  // superpg_fork();
+  superpg_fork();
   superpg_free();
   printf("pgtbltest: all tests succeeded\n");
   exit(0);
