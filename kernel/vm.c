@@ -358,6 +358,8 @@ uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
         } else {
           uvmdemote(pagetable, SUPERPGROUNDDOWN(va));
           sz = PGSIZE;
+          if((pte = spwalk(pagetable, a, 0, &sp)) == 0)
+            panic("uvmdemote: no normal page");
           uint64 pa = PTE2PA(*pte);
           kfree((void*)pa);
         }
