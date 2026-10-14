@@ -196,9 +196,48 @@ walkaddr(pagetable_t pagetable, uint64 va)
 
 
 #if defined(LAB_PGTBL) || defined(SOL_MMAP) || defined(SOL_COW)
+
+void
+avmprint(pagetable_t pagetable, int level, uint64 stva) {
+  for(int i = 0; i < 512; i++) {
+    pte_t pte = pagetable[i];
+    uint64 sz;
+
+    if((pte & PTE_V) == 0)
+      continue;
+
+    switch (level) {
+      case 2:
+        sz = 512 * SUPERPGSIZE;
+        printf(" ..");
+        break;
+      case 1:
+        sz = SUPERPGSIZE;
+        printf(" .. ..");
+        break;
+      case 0:
+        sz = PGSIZE;
+        printf(" .. .. ..");
+        break;
+      default:
+        sz = -1;
+        panic("avmprint: level is not 1, 2, 3");
+    }
+
+    printf("%p: pte %p pa %p\n", (char*)(stva + i*sz), (char*)pte, (char*)PTE2PA(pte));
+
+    if((pte & (PTE_R|PTE_W|PTE_X)) == 0) {
+      uint64 child = PTE2PA(pte);
+      avmprint((pagetable_t)child, level - 1,  stva + i*sz);
+    }
+  }
+}
+
 void
 vmprint(pagetable_t pagetable) {
   // your code here
+  printf("page table %p\n", pagetable);
+  avmprint(pagetable, 2, 0);
 }
 #endif
 
