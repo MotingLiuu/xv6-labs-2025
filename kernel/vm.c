@@ -352,11 +352,11 @@ uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
         uint64 pa = PTE2PA(*pte);
         kfree((void*)pa);
       } else {
-        if(va % SUPERPGSIZE == 0) {
+        if(a % SUPERPGSIZE == 0) {
           uint64 pa = PTE2PA(*pte);
           superfree((void*)pa);
         } else {
-          uvmdemote(pagetable, SUPERPGROUNDDOWN(va));
+          uvmdemote(pagetable, SUPERPGROUNDDOWN(a));
           sz = PGSIZE;
           if((pte = spwalk(pagetable, a, 0, &sp)) == 0)
             panic("uvmdemote: no normal page");
