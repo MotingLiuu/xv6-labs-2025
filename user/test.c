@@ -2,8 +2,7 @@
 #include "user/user.h"
 
 int main(int argc, char** argv) {
-  unsigned int i = 0x00646c72;
-  printf("H%x Wo%s", 57616, (char *) &i);
-
+  int pid = getpid();
+  printf("pid: %d\n", pid);
   return 0;
 }
