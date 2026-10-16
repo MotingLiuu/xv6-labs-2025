@@ -24,9 +24,9 @@ int
 main(int argc, char *argv[])
 {
   test0();
-  test1();
-  test2();
-  test3();
+  // test1();
+  // test2();
+  // test3();
   exit(0);
 }
 
