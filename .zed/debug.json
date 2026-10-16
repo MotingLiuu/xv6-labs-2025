@@ -6,8 +6,8 @@
 
     "targetCreateCommands": [
       "target create \"$ZED_WORKTREE_ROOT/kernel/kernel\"",
-      "target modules add \"$ZED_WORKTREE_ROOT/user/_test\"",
-      "target modules load --file _test --slide 0x0"
+      "target modules add \"$ZED_WORKTREE_ROOT/user/_alarmtest\"",
+      "target modules load --file _alarmtest --slide 0x0"
     ],
 
     "processCreateCommands": [
