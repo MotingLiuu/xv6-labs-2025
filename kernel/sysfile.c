@@ -508,6 +508,16 @@ sys_pipe(void)
 uint64
 sys_sigalarm(void)
 {
+  struct proc *p = myproc();
+  int arg0;
+  uint64 arg1;
+
+  argint(0, &arg0);
+  argaddr(1, &arg1);
+
+  p->interval = arg0;
+  p->handler = (void (*)())arg1;
+
   return 0;
 }
 
