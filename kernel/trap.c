@@ -68,8 +68,13 @@ usertrap(void)
     syscall();
   } else if((which_dev = devintr()) != 0){
     // ok
-  } else if ((which_dev = devintr()) == 2) {
-    // alarm code
+
+    // sigalarm code
+    if(which_dev == 2) {
+      if(p->interval) {
+        p->trapframe->epc = (uint64)(p->handler);
+      }
+    }
 
   } else if((r_scause() == 15 || r_scause() == 13) &&
             vmfault(p->pagetable, r_stval(), (r_scause() == 13)? 1 : 0) != 0) {
