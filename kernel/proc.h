@@ -77,6 +77,43 @@ struct trapframe {
   /* 264 */ uint64 t4;
   /* 272 */ uint64 t5;
   /* 280 */ uint64 t6;
+
+  /*   0 */ uint64 alarm_kernel_satp;   // kernel page table
+  /*   8 */ uint64 alarm_kernel_sp;     // top of process's kernel stack
+  /*  16 */ uint64 alarm_kernel_trap;   // usertrap()
+  /*  24 */ uint64 alarm_epc;           // saved user program counter
+  /*  32 */ uint64 alarm_kernel_hartid; // saved kernel tp
+  /*  40 */ uint64 alarm_ra;
+  /*  48 */ uint64 alarm_sp;
+  /*  56 */ uint64 alarm_gp;
+  /*  64 */ uint64 alarm_tp;
+  /*  72 */ uint64 alarm_t0;
+  /*  80 */ uint64 alarm_t1;
+  /*  88 */ uint64 alarm_t2;
+  /*  96 */ uint64 alarm_s0;
+  /* 104 */ uint64 alarm_s1;
+  /* 112 */ uint64 alarm_a0;
+  /* 120 */ uint64 alarm_a1;
+  /* 128 */ uint64 alarm_a2;
+  /* 136 */ uint64 alarm_a3;
+  /* 144 */ uint64 alarm_a4;
+  /* 152 */ uint64 alarm_a5;
+  /* 160 */ uint64 alarm_a6;
+  /* 168 */ uint64 alarm_a7;
+  /* 176 */ uint64 alarm_s2;
+  /* 184 */ uint64 alarm_s3;
+  /* 192 */ uint64 alarm_s4;
+  /* 200 */ uint64 alarm_s5;
+  /* 208 */ uint64 alarm_s6;
+  /* 216 */ uint64 alarm_s7;
+  /* 224 */ uint64 alarm_s8;
+  /* 232 */ uint64 alarm_s9;
+  /* 240 */ uint64 alarm_s10;
+  /* 248 */ uint64 alarm_s11;
+  /* 256 */ uint64 alarm_t3;
+  /* 264 */ uint64 alarm_t4;
+  /* 272 */ uint64 alarm_t5;
+  /* 280 */ uint64 alarm_t6;
 };
 
 enum procstate { UNUSED, USED, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
@@ -109,4 +146,5 @@ struct proc {
   int interval;
   int ticks;
   void (*handler) ();
+  int inhandler;
 };

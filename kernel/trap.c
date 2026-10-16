@@ -47,10 +47,10 @@ usertrap(void)
   w_stvec((uint64)kernelvec);  //DOC: kernelvec
 
   struct proc *p = myproc();
-  
+
   // save user program counter.
   p->trapframe->epc = r_sepc();
-  
+
   if(r_scause() == 8){
     // system call
 
@@ -70,9 +70,55 @@ usertrap(void)
     // ok
 
     // sigalarm code
-    if(which_dev == 2) {
-      if(p->interval) {
+    if(which_dev == 2 && p->interval != 0) {
+
+      p->ticks += 1;
+
+      if(p->interval && p->ticks == p->interval && p->inhandler == 0) {
+        p->inhandler = 1;
+
+        // save user porc's registers into alarm
+        p->trapframe->alarm_kernel_satp = p->trapframe->kernel_satp;
+        p->trapframe->alarm_kernel_sp = p->trapframe->kernel_sp;
+        p->trapframe->alarm_kernel_trap = p->trapframe->kernel_trap;
+        p->trapframe->alarm_epc = p->trapframe->epc;
+        p->trapframe->alarm_kernel_hartid = p->trapframe->kernel_hartid;
+        p->trapframe->alarm_ra = p->trapframe->ra;
+        p->trapframe->alarm_sp = p->trapframe->sp;
+        p->trapframe->alarm_gp = p->trapframe->gp;
+        p->trapframe->alarm_tp = p->trapframe->tp;
+        p->trapframe->alarm_t0 = p->trapframe->t0;
+        p->trapframe->alarm_t1 = p->trapframe->t1;
+        p->trapframe->alarm_t2 = p->trapframe->t2;
+        p->trapframe->alarm_s0 = p->trapframe->s0;
+        p->trapframe->alarm_s1 = p->trapframe->s1;
+        p->trapframe->alarm_a0 = p->trapframe->a0;
+        p->trapframe->alarm_a1 = p->trapframe->a1;
+        p->trapframe->alarm_a2 = p->trapframe->a2;
+        p->trapframe->alarm_a3 = p->trapframe->a3;
+        p->trapframe->alarm_a4 = p->trapframe->a4;
+        p->trapframe->alarm_a5 = p->trapframe->a5;
+        p->trapframe->alarm_a6 = p->trapframe->a6;
+        p->trapframe->alarm_a7 = p->trapframe->a7;
+        p->trapframe->alarm_s2 = p->trapframe->s2;
+        p->trapframe->alarm_s3 = p->trapframe->s3;
+        p->trapframe->alarm_s4 = p->trapframe->s4;
+        p->trapframe->alarm_s5 = p->trapframe->s5;
+        p->trapframe->alarm_s6 = p->trapframe->s6;
+        p->trapframe->alarm_s7 = p->trapframe->s7;
+        p->trapframe->alarm_s8 = p->trapframe->s8;
+        p->trapframe->alarm_s9 = p->trapframe->s9;
+        p->trapframe->alarm_s10 = p->trapframe->s10;
+        p->trapframe->alarm_s11 = p->trapframe->s11;
+        p->trapframe->alarm_t3 = p->trapframe->t3;
+        p->trapframe->alarm_t4 = p->trapframe->t4;
+        p->trapframe->alarm_t5 = p->trapframe->t5;
+        p->trapframe->alarm_t6 = p->trapframe->t6;
+
+
+        // set instruction to be execute after return to user proc to p->handler
         p->trapframe->epc = (uint64)(p->handler);
+        p->ticks = 0;
       }
     }
 
@@ -127,7 +173,7 @@ prepare_return(void)
 
   // set up the registers that trampoline.S's sret will use
   // to get to user space.
-  
+
   // set S Previous Privilege mode to User.
   unsigned long x = r_sstatus();
   x &= ~SSTATUS_SPP; // clear SPP to 0 for user mode
@@ -140,14 +186,14 @@ prepare_return(void)
 
 // interrupts and exceptions from kernel code go here via kernelvec,
 // on whatever the current kernel stack is.
-void 
+void
 kerneltrap()
 {
   int which_dev = 0;
   uint64 sepc = r_sepc();
   uint64 sstatus = r_sstatus();
   uint64 scause = r_scause();
-  
+
   if((sstatus & SSTATUS_SPP) == 0)
     panic("kerneltrap: not from supervisor mode");
   if(intr_get() != 0)
@@ -224,4 +270,3 @@ devintr()
     return 0;
   }
 }
-

@@ -85,7 +85,7 @@ sys_write(void)
   struct file *f;
   int n;
   uint64 p;
-  
+
   argaddr(1, &p);
   argint(2, &n);
   if(argfd(0, 0, &f) < 0)
@@ -412,7 +412,7 @@ sys_chdir(void)
   char path[MAXPATH];
   struct inode *ip;
   struct proc *p = myproc();
-  
+
   begin_op();
   if(argstr(0, path, MAXPATH) < 0 || (ip = namei(path)) == 0){
     end_op();
@@ -524,5 +524,46 @@ sys_sigalarm(void)
 uint64
 sys_sigreturn(void)
 {
-  return 0;
+  struct proc *p = myproc();
+  p->inhandler = 0;
+
+  // recovery trapframe;
+  p->trapframe->kernel_satp = p->trapframe->alarm_kernel_satp;
+  p->trapframe->kernel_sp = p->trapframe->alarm_kernel_sp;
+  p->trapframe->kernel_trap = p->trapframe->alarm_kernel_trap;
+  p->trapframe->epc = p->trapframe->alarm_epc;
+  p->trapframe->kernel_hartid = p->trapframe->alarm_kernel_hartid;
+  p->trapframe->ra = p->trapframe->alarm_ra;
+  p->trapframe->sp = p->trapframe->alarm_sp;
+  p->trapframe->gp = p->trapframe->alarm_gp;
+  p->trapframe->tp = p->trapframe->alarm_tp;
+  p->trapframe->t0 = p->trapframe->alarm_t0;
+  p->trapframe->t1 = p->trapframe->alarm_t1;
+  p->trapframe->t2 = p->trapframe->alarm_t2;
+  p->trapframe->s0 = p->trapframe->alarm_s0;
+  p->trapframe->s1 = p->trapframe->alarm_s1;
+  p->trapframe->a0 = p->trapframe->alarm_a0;
+  p->trapframe->a1 = p->trapframe->alarm_a1;
+  p->trapframe->a2 = p->trapframe->alarm_a2;
+  p->trapframe->a3 = p->trapframe->alarm_a3;
+  p->trapframe->a4 = p->trapframe->alarm_a4;
+  p->trapframe->a5 = p->trapframe->alarm_a5;
+  p->trapframe->a6 = p->trapframe->alarm_a6;
+  p->trapframe->a7 = p->trapframe->alarm_a7;
+  p->trapframe->s2 = p->trapframe->alarm_s2;
+  p->trapframe->s3 = p->trapframe->alarm_s3;
+  p->trapframe->s4 = p->trapframe->alarm_s4;
+  p->trapframe->s5 = p->trapframe->alarm_s5;
+  p->trapframe->s6 = p->trapframe->alarm_s6;
+  p->trapframe->s7 = p->trapframe->alarm_s7;
+  p->trapframe->s8 = p->trapframe->alarm_s8;
+  p->trapframe->s9 = p->trapframe->alarm_s9;
+  p->trapframe->s10 = p->trapframe->alarm_s10;
+  p->trapframe->s11 = p->trapframe->alarm_s11;
+  p->trapframe->t3 = p->trapframe->alarm_t3;
+  p->trapframe->t4 = p->trapframe->alarm_t4;
+  p->trapframe->t5 = p->trapframe->alarm_t5;
+  p->trapframe->t6 = p->trapframe->alarm_t6;
+
+  return p->trapframe->a0;
 }

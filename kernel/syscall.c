@@ -133,7 +133,7 @@ static uint64 (*syscalls[])(void) = {
 
 // alarm code
 [SYS_sigalarm]    sys_sigalarm,
-[SYS_sigreturn]   sys_sigreturn,
+[SYS_sigreturn]   sys_sigreturn
 };
 
 void
