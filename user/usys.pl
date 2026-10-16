@@ -42,3 +42,7 @@ entry("getpid");
 entry("sbrk");
 entry("pause");
 entry("uptime");
+
+# alarm code
+entry("sigalarm");
+entry("sigreturn");
