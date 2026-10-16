@@ -149,3 +149,29 @@ printfinit(void)
 {
   initlock(&pr.lock, "pr");
 }
+
+// backtrace code
+void
+backtrace()
+{
+  uint64 fp, ra, s0;
+  uint64 down = 0;
+
+  printf("backtrace:\n");
+
+  fp = r_fp();
+
+  while(1) {
+    if(down != 0 && PGROUNDDOWN(down) != PGROUNDDOWN(fp))
+      break;
+
+    ra = *(uint64 *)(fp - 8);
+    s0 = *(uint64 *)(fp - 16);
+    printf("%p\n", (char *)ra);
+
+    // prepare for next frame
+    down = PGROUNDDOWN(fp - 8);
+    fp = s0;
+  }
+
+}
