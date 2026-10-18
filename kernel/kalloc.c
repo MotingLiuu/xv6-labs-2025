@@ -21,6 +21,10 @@ struct run {
 struct {
   struct spinlock lock;
   struct run *freelist;
+
+  // cow code
+  // 32768, 128MB / 4kb is 32768
+  int rc [32768];
 } kmem;
 
 void
