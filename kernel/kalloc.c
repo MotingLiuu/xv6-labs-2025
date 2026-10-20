@@ -9,6 +9,10 @@
 #include "riscv.h"
 #include "defs.h"
 
+// cow code
+#define PGCOUNT ((0x88000000 - 0x80000000) / 4096)
+#define REFINDEX(pa) (((uint64)pa - 0x80000000) / 4096)
+
 void freerange(void *pa_start, void *pa_end);
 
 extern char end[]; // first address after kernel.
@@ -21,10 +25,8 @@ struct run {
 struct {
   struct spinlock lock;
   struct run *freelist;
-
   // cow code
-  // 32768, 128MB / 4kb is 32768
-  int rc [32768];
+  int refcount[PGCOUNT];
 } kmem;
 
 void
@@ -51,25 +53,29 @@ void
 kfree(void *pa)
 {
   struct run *r;
+  int refc;
 
   if(((uint64)pa % PGSIZE) != 0 || (char*)pa < end || (uint64)pa >= PHYSTOP)
     panic("kfree");
 
   // cow code
-  if(kmem.rc[(uint64)pa / 4096] > 0) {
-    kmem.rc[(uint64)pa / 4096] -= 1;
-  } else if(kmem.rc[(uint64)pa / 4096] == 0) {
-      // Fill with junk to catch dangling refs.
-      memset(pa, 1, PGSIZE);
+  acquire(&kmem.lock);
+  if(kmem.refcount[REFINDEX(pa)] > 0) {
+    kmem.refcount[REFINDEX(pa)] -= 1;
+  }
+  refc = kmem.refcount[REFINDEX(pa)];
+  release(&kmem.lock);
 
-  r = (struct run*)pa;
+  // Fill with junk to catch dangling refs.
+  if(refc == 0) {
+    memset(pa, 1, PGSIZE);
 
-      acquire(&kmem.lock);
-      r->next = kmem.freelist;
-      kmem.freelist = r;
-      release(&kmem.lock);
-  } else {
-    panic("kfree: kmem.rc[(uint64)pa / 4096] < 0");
+    r = (struct run*)pa;
+
+    acquire(&kmem.lock);
+    r->next = kmem.freelist;
+    kmem.freelist = r;
+    release(&kmem.lock);
   }
 }
 
@@ -83,8 +89,17 @@ kalloc(void)
 
   acquire(&kmem.lock);
   r = kmem.freelist;
+
+  /*
   if(r)
     kmem.freelist = r->next;
+  */
+
+  // cow code
+  if(r) {
+    kmem.freelist = r->next;
+    kmem.refcount[REFINDEX(r)] = 1;
+  }
   release(&kmem.lock);
 
   if(r) {
@@ -96,8 +111,32 @@ kalloc(void)
   return (void*)r;
 }
 
-void
-krc(void *pa)
+// cow code
+void *
+kcow(void *pa)
 {
-  kmem.rc[(uint64)pa / 4096] += 1;
+  if(((uint64)pa % PGSIZE) != 0 || (char*)pa < end || (uint64)pa >= PHYSTOP)
+    panic("kcow: pa's range is wrong");
+
+  acquire(&kmem.lock);
+  kmem.refcount[REFINDEX(pa)] += 1;
+  release(&kmem.lock);
+
+  return pa;
+}
+
+// cow code
+int
+kref(void *pa)
+{
+  int refc;
+
+  if(((uint64)pa % PGSIZE) != 0 || (char*)pa < end || (uint64)pa >= PHYSTOP)
+    panic("kcow: pa's range is wrong");
+
+  acquire(&kmem.lock);
+  refc = kmem.refcount[REFINDEX(pa)];
+  release(&kmem.lock);
+
+  return refc;
 }
