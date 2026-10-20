@@ -53,19 +53,30 @@ void
 kfree(void *pa)
 {
   struct run *r;
+  int refc;
 
   if(((uint64)pa % PGSIZE) != 0 || (char*)pa < end || (uint64)pa >= PHYSTOP)
     panic("kfree");
 
-  // Fill with junk to catch dangling refs.
-  memset(pa, 1, PGSIZE);
-
-  r = (struct run*)pa;
-
+  // cow code
   acquire(&kmem.lock);
-  r->next = kmem.freelist;
-  kmem.freelist = r;
+  if(kmem.refcount[REFINDEX(pa)] > 0) {
+    kmem.refcount[REFINDEX(pa)] -= 1;
+  }
+  refc = kmem.refcount[REFINDEX(pa)];
   release(&kmem.lock);
+
+  // Fill with junk to catch dangling refs.
+  if(refc == 0) {
+    memset(pa, 1, PGSIZE);
+
+    r = (struct run*)pa;
+
+    acquire(&kmem.lock);
+    r->next = kmem.freelist;
+    kmem.freelist = r;
+    release(&kmem.lock);
+  }
 }
 
 // Allocate one 4096-byte page of physical memory.
