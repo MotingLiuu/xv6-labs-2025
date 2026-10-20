@@ -108,18 +108,15 @@ kalloc(void)
 }
 
 // cow code
-int
+void *
 kcow(void *pa)
 {
-  int refc;
-
   if(((uint64)pa % PGSIZE) != 0 || (char*)pa < end || (uint64)pa >= PHYSTOP)
     panic("kcow: pa's range is wrong");
 
   acquire(&kmem.lock);
-  refc = kmem.refcount[REFINDEX(pa)];
   kmem.refcount[REFINDEX(pa)] += 1;
   release(&kmem.lock);
 
-  return refc;
+  return pa;
 }
