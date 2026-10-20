@@ -91,6 +91,13 @@ kalloc(void)
   r = kmem.freelist;
   if(r)
     kmem.freelist = r->next;
+  */
+
+  // cow code
+  if(r) {
+    kmem.freelist = r->next;
+    kmem.refcount[REFINDEX(r)] = 1;
+  }
   release(&kmem.lock);
 
   if(r)
