@@ -298,7 +298,7 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
 {
   pte_t *pte;
   uint64 pa, i;
-  uint flags;
+  uint flags, newflags;
   char *mem;
 
   for(i = 0; i < sz; i += PGSIZE){
@@ -308,10 +308,29 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
       continue;   // physical page hasn't been allocated
     pa = PTE2PA(*pte);
     flags = PTE_FLAGS(*pte);
+    /*
     if((mem = kalloc()) == 0)
       goto err;
     memmove(mem, (char*)pa, PGSIZE);
     if(mappages(new, i, PGSIZE, (uint64)mem, flags) != 0){
+      kfree(mem);
+      goto err;
+    }
+    */
+
+    // cow code
+    if(flags & PTE_W) {
+      newflags = (flags | PTE_COW) & ~PTE_W;
+    } else {
+      newflags = flags;
+    }
+
+    // old page
+    *pte = PA2PTE(pa) | newflags;
+
+    // new page
+    mem = kcow((void *)pa);
+    if(mappages(new, i, PGSIZE, (uint64)mem, newflags) != 0) {
       kfree(mem);
       goto err;
     }
