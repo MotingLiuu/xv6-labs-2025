@@ -11,7 +11,7 @@
 
 // cow code
 #define PGCOUNT ((0x88000000 - 0x80000000) / 4096)
-#define REFINDEX(pa) ((pa - 0x80000000) / 4096)
+#define REFINDEX(pa) (((uint64)pa - 0x80000000) / 4096)
 
 void freerange(void *pa_start, void *pa_end);
 
