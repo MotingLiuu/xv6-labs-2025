@@ -9,6 +9,10 @@
 #include "riscv.h"
 #include "defs.h"
 
+// cow code
+#define PGCOUNT ((0x88000000 - 0x80000000) / 4096)
+#define REFINDEX(pa) ((pa - 0x80000000) / 4096)
+
 void freerange(void *pa_start, void *pa_end);
 
 extern char end[]; // first address after kernel.
@@ -21,6 +25,8 @@ struct run {
 struct {
   struct spinlock lock;
   struct run *freelist;
+  // cow code
+  int refcount[PGCOUNT];
 } kmem;
 
 void
