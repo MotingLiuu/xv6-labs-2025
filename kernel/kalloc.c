@@ -120,3 +120,19 @@ kcow(void *pa)
 
   return pa;
 }
+
+// cow code
+int
+kref(void *pa)
+{
+  int refc;
+
+  if(((uint64)pa % PGSIZE) != 0 || (char*)pa < end || (uint64)pa >= PHYSTOP)
+    panic("kcow: pa's range is wrong");
+
+  acquire(&kmem.lock);
+  refc = kmem.refcount[REFINDEX(pa)];
+  release(&kmem.lock);
+
+  return refc;
+}
