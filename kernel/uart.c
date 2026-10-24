@@ -116,6 +116,7 @@ uartputc_sync(int c)
 
   // wait for Transmit Holding Empty to be set in LSR.
   while((ReadReg(LSR) & LSR_TX_IDLE) == 0)
+    // MT: LSR_TX_IDLE is LSR's bit 5, LSR_TX_IDLE == 1 represents that THR can receive new byte
     ;
   WriteReg(THR, c);
 
