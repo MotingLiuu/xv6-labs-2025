@@ -1,4 +1,27 @@
+// MT: console.c implements xv6's console device:
 //
+// Sends ouput to the UART and turns incoming keystrokes into input that programs can read.
+// Typed characters are echoed immediately, become available to `read()` only after Enter is pressed.
+//
+// Two Main Path:
+//  Output:
+//  user write() → consolewrite() → uartwrite() → UART
+//
+//  Input:
+//  UART interrupt → uartintr() → consoleintr()
+//                                    ↓
+//                               input buffer
+//                                    ↓
+//  user read()  →              consoleread()
+//
+// Output path for kernel printing and input echo:
+//  kernel printf() / input echo → consputc() → uartputc_sync()
+//
+// Questions:
+// 1. what is the relationship between CONSOLE and UART?
+
+
+
 // Console input and output, to the uart.
 // Reads are line at a time.
 // Implements special input characters:
@@ -40,6 +63,12 @@ consputc(int c)
     uartputc_sync(c);
   }
 }
+// uartputc_sync('A');
+// 1. Kernel wait UART's send register able to accept data
+// 2. Write 0x41 into UART's send register
+// 3. UART hardware is responsible to send this byte, trans it to serial signal which sent bit by bit.
+// 4. send signal to QEMU's terminal
+// 5. terminal explain 0x41 to A and display it
 
 struct {
   struct spinlock lock;
@@ -51,10 +80,29 @@ struct {
   uint w;  // Write index
   uint e;  // Edit index
 } cons;
+// MT:
+// R: read index, next char to read by user prog
+// W: write index, end of commited chars
+// E: Edite index, slot where keystroke written.
+//
+// Example:
+// Typing hi
+// buf: h i
+// r = 0, w = 0, e = 2
+//
+// Readers still waits because `r == w`
+// Pressing Enter `\n` and commit the input:
+// buf: h i \n
+// r = 0, w = 3, e = 3
+// A reader can consume "hi\n", eventually advancing to 3.
 
 //
 // user write()s to the console go here.
 //
+// MT:
+// user_sc: whether src refers to user memo rather than kernel memo
+// src: source address
+// n: number of bytes requested
 int
 consolewrite(int user_src, uint64 src, int n)
 {
