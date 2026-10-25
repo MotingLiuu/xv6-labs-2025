@@ -225,6 +225,8 @@ userinit(void)
   initproc = p;
   
   p->cwd = namei("/");
+  // MT: The returned inode is referenced but not locked. It reference
+  // keeps the in-memo entry alive while p->cwd points to it.
 
   p->state = RUNNABLE;
 
