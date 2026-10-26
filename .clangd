@@ -1,0 +1,6 @@
+CompileFlags:
+  Add:
+    - --target=riscv64-unknown-elf
+
+Completion:
+  HeaderInsertion: Never
