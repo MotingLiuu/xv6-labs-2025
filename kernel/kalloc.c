@@ -105,8 +105,6 @@ kalloc(void)
   if(r) {
     memset((char*)r, 5, PGSIZE); // fill with junk
 
-
-    kmem.rc[(uint64)r / 4096] = 1;
   }
   return (void*)r;
 }
