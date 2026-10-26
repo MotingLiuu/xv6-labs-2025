@@ -69,6 +69,9 @@ uartinit(void)
   WriteReg(FCR, FCR_FIFO_ENABLE | FCR_FIFO_CLEAR);
 
   // enable transmit and receive interrupts.
+  // MT: 
+  // IER_RX_ENABLE: enable receive interrupt
+  // IER_TX_ENABLE: enable transmit interrupt
   WriteReg(IER, IER_TX_ENABLE | IER_RX_ENABLE);
 
   initlock(&tx_lock, "uart");
