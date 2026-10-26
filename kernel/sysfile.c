@@ -85,7 +85,7 @@ sys_write(void)
   struct file *f;
   int n;
   uint64 p;
-  
+
   argaddr(1, &p);
   argint(2, &n);
   if(argfd(0, 0, &f) < 0)
@@ -246,12 +246,16 @@ static struct inode*
 create(char *path, short type, short major, short minor)
 {
   struct inode *ip, *dp;
+  // MT:
+  // dp is directory inode pointer, represents parent directory
+  // ip is inode which is already exist or will be created
   char name[DIRSIZ];
 
   if((dp = nameiparent(path, name)) == 0)
     return 0;
 
   ilock(dp);
+  // MT: At this point, dp points to inode of "/home", name = "test"
 
   if((ip = dirlookup(dp, name, 0)) != 0){
     iunlockput(dp);
@@ -262,6 +266,9 @@ create(char *path, short type, short major, short minor)
     return 0;
   }
 
+  // MT:
+  // If file do not exist
+  // find a free inode by calling ialloc(), alloc it to new file.
   if((ip = ialloc(dp->dev, type)) == 0){
     iunlockput(dp);
     return 0;
@@ -271,6 +278,9 @@ create(char *path, short type, short major, short minor)
   ip->major = major;
   ip->minor = minor;
   ip->nlink = 1;
+
+  // MT:
+  // write inode's metadata into disk's inode
   iupdate(ip);
 
   if(type == T_DIR){  // Create . and .. entries.
@@ -279,6 +289,8 @@ create(char *path, short type, short major, short minor)
       goto fail;
   }
 
+  // MT:
+  // add new file into parent directory.
   if(dirlink(dp, name, ip->inum) < 0)
     goto fail;
 
@@ -412,7 +424,7 @@ sys_chdir(void)
   char path[MAXPATH];
   struct inode *ip;
   struct proc *p = myproc();
-  
+
   begin_op();
   if(argstr(0, path, MAXPATH) < 0 || (ip = namei(path)) == 0){
     end_op();

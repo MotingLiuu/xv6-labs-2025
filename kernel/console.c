@@ -48,6 +48,9 @@
 #define BACKSPACE 0x100
 #define C(x)  ((x)-'@')  // Control-x
 
+// MT:
+// pust a char by calling uartputc_sync(), which would spin until
+// ReadReg(LSR) & LSR_TX_IDLE) == 0
 //
 // send one character to the uart.
 // called by printf(), and to echo input characters,
@@ -63,16 +66,10 @@ consputc(int c)
     uartputc_sync(c);
   }
 }
-// uartputc_sync('A');
-// 1. Kernel wait UART's send register able to accept data
-// 2. Write 0x41 into UART's send register
-// 3. UART hardware is responsible to send this byte, trans it to serial signal which sent bit by bit.
-// 4. send signal to QEMU's terminal
-// 5. terminal explain 0x41 to A and display it
 
 struct {
   struct spinlock lock;
-  
+
   // input
 #define INPUT_BUF_SIZE 128
   char buf[INPUT_BUF_SIZE];
@@ -96,13 +93,13 @@ struct {
 // r = 0, w = 3, e = 3
 // A reader can consume "hi\n", eventually advancing to 3.
 
-//
-// user write()s to the console go here.
-//
 // MT:
 // user_sc: whether src refers to user memo rather than kernel memo
 // src: source address
 // n: number of bytes requested
+//
+// user prog's write() will call this function consolewrite()
+// uartwrite() would sleep to wait tx_chan, tx_lock
 int
 consolewrite(int user_src, uint64 src, int n)
 {
@@ -113,6 +110,10 @@ consolewrite(int user_src, uint64 src, int n)
     int nn = sizeof(buf);
     if(nn > n - i)
       nn = n - i;
+    // MT:
+    // nn: represents the num of char write to uart by uartwrite
+    // i: num of char written
+    // n: all of the char planned to be written
     if(either_copyin(buf, user_src, src+i, nn) == -1)
       break;
     uartwrite(buf, nn);
@@ -226,7 +227,7 @@ consoleintr(int c)
     }
     break;
   }
-  
+
   release(&cons.lock);
 }
 

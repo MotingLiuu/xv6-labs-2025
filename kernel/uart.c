@@ -49,7 +49,7 @@ extern volatile int panicked; // from printf.c
 void
 uartinit(void)
 {
-  // disable interrupts.
+  // disable interrupts. to avoid UART inform CPU by interruption during initialization.
   WriteReg(IER, 0x00);
 
   // special mode to set baud rate.
@@ -83,13 +83,13 @@ uartwrite(char buf[], int n)
   acquire(&tx_lock);
 
   int i = 0;
-  while(i < n){ 
+  while(i < n){
     while(tx_busy != 0){
       // wait for a UART transmit-complete interrupt
       // to set tx_busy to 0.
       sleep(&tx_chan, &tx_lock);
-    }   
-      
+    }
+
     WriteReg(THR, buf[i]);
     i += 1;
     tx_busy = 1;

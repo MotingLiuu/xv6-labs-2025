@@ -17,6 +17,7 @@ main(void)
   int pid, wpid;
 
   if(open("console", O_RDWR) < 0){
+    // MT: O_RDWR, open for reading and writing.
     mknod("console", CONSOLE, 0);
     open("console", O_RDWR);
   }
