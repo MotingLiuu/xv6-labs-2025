@@ -42,18 +42,35 @@ e1000_init(uint32 *xregs)
   memset(tx_ring, 0, sizeof(tx_ring));
   for (i = 0; i < TX_RING_SIZE; i++) {
     tx_ring[i].status = E1000_TXD_STAT_DD;
+    // MT: Question: what is txd stat dd?
     tx_ring[i].addr = 0;
   }
   regs[E1000_TDBAL] = (uint64) tx_ring;
+  // MT: Question: TDBAL represents the start address of tx_ring?
+  // Answer: Yes
   if(sizeof(tx_ring) % 128 != 0)
     panic("e1000");
+  // MT: Question: why check sizeof(tx_ring) % 128?
+  // Answer: e1000's requirement
   regs[E1000_TDLEN] = sizeof(tx_ring);
   regs[E1000_TDH] = regs[E1000_TDT] = 0;
-  
+  // MT:
+  // TDH — Transmit Descriptor Head: the index of the next descriptor the e1000 will process.
+  // The device advances it as it transmits.
+  //
+  // TDT — Transmit Descriptor Tail: the boundary up to which the driver has supplied descriptors.
+  // The driver advances it to notify the device of new work.
+
   // [E1000 14.4] Receive initialization
   memset(rx_ring, 0, sizeof(rx_ring));
   for (i = 0; i < RX_RING_SIZE; i++) {
     rx_ring[i].addr = (uint64) kalloc();
+    // MT: Question: why kalloc() here?  Tx's descriptor's address just points some are of RAM? It address is set by kernel?
+    // But Rx's d's address need to be allocated in advance, because hardware need to write into memo through DMA? But why not just use
+    // Global array? why kalloc()? Because we should not reserve space in advance, for we may not use the corresponding hardware?
+    //
+    // Answer: can use global array, but, buffer allocated by kalloc() will be used by other hardware,
+    // We can just move the ownship to other device and kalloc() a new buffer to rx_ring[i].addr
     if (!rx_ring[i].addr)
       panic("e1000");
   }
@@ -66,8 +83,12 @@ e1000_init(uint32 *xregs)
 
   // filter by qemu's MAC address, 52:54:00:12:34:56
   regs[E1000_RA] = 0x12005452;
+  // MT: THis is RAL(Receive Address Low), the former 4 bytes of mac.
   regs[E1000_RA+1] = 0x5634 | (1<<31);
+  // MT: This is RAH(Receive Address High), last 2 bytes of mac, and control bits.
+
   // multicast table
+  // MT: this disable all multicast
   for (int i = 0; i < 4096/32; i++)
     regs[E1000_MTA + i] = 0;
 
