@@ -126,7 +126,30 @@ e1000_transmit(char *buf, int len)
   // so that the caller knows to free buf.
   //
 
-  
+  // net code
+  int index;
+  index = regs[E1000_TDT];
+  // check if rx_ring is overflowing
+  if((tx_ring[index].status & E1000_TXD_STAT_DD) == 0) {
+    printf("DEBUG: tx_ring is overflowing\n");
+    return -1;
+  }
+
+  // kfree() last buffer that was transmitted from this descriptor
+  if(tx_ring[index].addr)
+    kfree((char *)tx_ring[index].addr);
+
+  // fill in descriptor
+  tx_ring[index].addr = (uint64)buf;
+  tx_ring[index].length = len;
+  tx_ring[index].status = 0;
+
+  // file in cmd register
+  tx_ring[index].cmd = E1000_TXD_CMD_EOP | E1000_TXD_CMD_RS;
+
+  // update the ring position
+  regs[E1000_TDT] = (regs[E1000_TDT] + 1) % TX_RING_SIZE;
+
   return 0;
 }
 
@@ -140,6 +163,27 @@ e1000_recv(void)
   // Create and deliver a buf for each packet (using net_rx()).
   //
 
+  // net code
+  int index;
+  index = (regs[E1000_RDT] + 1) % RX_RING_SIZE;
+
+  // check if a new packt is available
+  while (1) {
+    if((rx_ring[index].status & E1000_TXD_STAT_DD) == 1) {
+      // deliver the packet buffer to the network stack
+      net_rx((char *)rx_ring[index].addr, rx_ring[index].length);
+
+      // allocate a new buffer using kalloc
+      rx_ring[index].addr = (uint64) kalloc();
+      rx_ring->length = 0;
+      rx_ring[index].status = 0;
+
+      // update E1000_RDT
+      regs[E1000_RDT] = (regs[E1000_RDT] + 1) % RX_RING_SIZE;
+    } else {
+      break;
+    }
+  }
 }
 
 void
