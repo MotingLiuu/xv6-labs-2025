@@ -136,6 +136,7 @@ e1000_transmit(char *buf, int len)
   }
 
   // kfree() last buffer that was transmitted from this descriptor
+  acquire(&e1000_lock);
   if(tx_ring[index].addr)
     kfree((char *)tx_ring[index].addr);
 
@@ -149,6 +150,7 @@ e1000_transmit(char *buf, int len)
 
   // update the ring position
   regs[E1000_TDT] = (regs[E1000_TDT] + 1) % TX_RING_SIZE;
+  release(&e1000_lock);
 
   return 0;
 }
@@ -169,6 +171,7 @@ e1000_recv(void)
 
   // check if a new packt is available
   while (1) {
+    acquire(&e1000_lock);
     if((rx_ring[index].status & E1000_TXD_STAT_DD) == 1) {
       // deliver the packet buffer to the network stack
       net_rx((char *)rx_ring[index].addr, rx_ring[index].length);
@@ -183,6 +186,7 @@ e1000_recv(void)
     } else {
       break;
     }
+  release(&e1000_lock);
   }
 }
 
