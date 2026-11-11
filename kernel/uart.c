@@ -84,6 +84,9 @@ void
 uartwrite(char buf[], int n)
 {
   acquire(&tx_lock);
+  // tx_lock 实现了两种需求
+  // 1. 互斥锁： 保证 tx_busy 的检查、THR 写入及 tx_busy 更新之间不存在其他 writer 的并发干扰。
+  // 2. 条件同步职责：将 tx_busy == 0 的检查和 sleep/wakeup 正确同步，避免 lost wakeup。
 
   int i = 0;
   while(i < n){
@@ -111,6 +114,7 @@ uartputc_sync(int c)
 {
   if(panicking == 0)
     push_off();
+  // turnoff dev interruption
 
   if(panicked){
     for(;;)
